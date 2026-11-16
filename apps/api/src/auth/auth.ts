@@ -4,16 +4,21 @@ import { fileURLToPath } from "node:url";
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 import { randomUUID } from "node:crypto";
-import { sendAuthEmail } from "./mailer.js";
+import { queueAuthEmail } from "./mailer.js";
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", ".env") });
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgresql://memora:change_me_locally@127.0.0.1:5432/memora";
 const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
-const secret = process.env.BETTER_AUTH_SECRET ??
-  (process.env.NODE_ENV === "production"
-    ? (() => { throw new Error("BETTER_AUTH_SECRET is required in production."); })()
-    : "memora-local-development-secret-change-before-deploy");
+const secret = process.env.BETTER_AUTH_SECRET ?? "memora-local-development-secret-change-before-deploy";
+if (process.env.NODE_ENV === "production") {
+  if (secret.length < 32 || secret.includes("replace-with") || !process.env.BETTER_AUTH_SECRET) {
+    throw new Error("A unique BETTER_AUTH_SECRET of at least 32 characters is required in production.");
+  }
+  if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_FROM) {
+    throw new Error("SMTP_HOST, SMTP_PORT and SMTP_FROM are required in production.");
+  }
+}
 
 export const authPool = new Pool({ connectionString: databaseUrl, max: 10 });
 
@@ -32,7 +37,7 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await sendAuthEmail({
+      queueAuthEmail({
         to: user.email,
         subject: "Réinitialiser votre mot de passe MEMORA",
         text: `Pour choisir un nouveau mot de passe, ouvrez ce lien : ${url}`,
