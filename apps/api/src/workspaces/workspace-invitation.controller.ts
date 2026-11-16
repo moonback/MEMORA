@@ -8,6 +8,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from "@nestjs/common";
@@ -141,7 +142,7 @@ export class WorkspaceInvitationController {
   @RequireWorkspaceRoles("owner", "admin")
   async revoke(
     @Param("workspaceId") workspaceId: string,
-    @Param("invitationId") invitationId: string,
+    @Param("invitationId", new ParseUUIDPipe()) invitationId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
     if (actor.workspaceType !== "shared") throw new BadRequestException("Les invitations sont réservées aux espaces partagés.");
