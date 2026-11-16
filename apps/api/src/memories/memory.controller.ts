@@ -148,7 +148,7 @@ export class MemoryController {
         );
         if (chunks.rowCount !== new Set(evidenceIds).size) throw new BadRequestException("Une ou plusieurs preuves ne correspondent pas à une source de cet espace.");
       }
-      const result = await client.query(
+      const result = await client.query<MemoryDbRow>(
         `INSERT INTO memories
           (workspace_id, created_by_user_id, type, status, content, summary, confidence,
            occurred_at, valid_from, valid_until, attributes)
@@ -220,7 +220,7 @@ export class MemoryController {
       if (input.validUntil !== undefined) add("valid_until", input.validUntil ? new Date(input.validUntil) : null);
       if (input.attributes !== undefined) add("attributes", JSON.stringify(input.attributes));
       fields.push("updated_at = now()");
-      const result = await client.query(`UPDATE memories SET ${fields.join(", ")} WHERE id = $1 AND workspace_id = $2 RETURNING ${memoryColumns}`, values);
+      const result = await client.query<MemoryDbRow>(`UPDATE memories SET ${fields.join(", ")} WHERE id = $1 AND workspace_id = $2 RETURNING ${memoryColumns}`, values);
       return { memory: result.rows[0] };
     });
   }
@@ -312,7 +312,7 @@ export class MemoryController {
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
-      const result = await client.query(
+      const result = await client.query<MemoryDbRow>(
         `UPDATE memories SET status = 'archived', updated_at = now()
          WHERE id = $1 AND workspace_id = $2 AND status = 'active'
          RETURNING ${memoryColumns}`,
