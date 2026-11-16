@@ -228,6 +228,7 @@ export const entityRelations = pgTable("entity_relations", {
   validUntil: timestamp("valid_until", { withTimezone: true }),
   ...timestamps,
 }, (table) => [
+  unique("entity_relations_id_workspace_unique").on(table.id, table.workspaceId),
   foreignKey({ columns: [table.fromEntityId, table.workspaceId], foreignColumns: [entities.id, entities.workspaceId], name: "entity_relations_from_workspace_fk" }).onDelete("cascade"),
   foreignKey({ columns: [table.toEntityId, table.workspaceId], foreignColumns: [entities.id, entities.workspaceId], name: "entity_relations_to_workspace_fk" }).onDelete("cascade"),
   check("entity_relations_distinct_entities", sql`${table.fromEntityId} <> ${table.toEntityId}`),
