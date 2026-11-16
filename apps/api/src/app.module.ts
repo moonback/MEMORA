@@ -8,10 +8,11 @@ import { WorkspaceMembershipController } from "./workspaces/workspace-membership
 import { WorkspaceInvitationController, InvitationAcceptanceController } from "./workspaces/workspace-invitation.controller.js";
 import { WorkspaceMembershipGuard } from "./workspaces/workspace-membership.guard.js";
 import { SourceController } from "./sources/source.controller.js";
+import { MemoryController } from "./memories/memory.controller.js";
 
 @Module({
   imports: [],
-  controllers: [HealthController, AccountController, WorkspaceController, WorkspaceMembershipController, WorkspaceInvitationController, InvitationAcceptanceController, SourceController],
+  controllers: [HealthController, AccountController, WorkspaceController, WorkspaceMembershipController, WorkspaceInvitationController, InvitationAcceptanceController, SourceController, MemoryController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     WorkspaceMembershipGuard,
