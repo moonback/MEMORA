@@ -41,7 +41,7 @@ export const users = pgTable("users", {
   timeZone: varchar("time_zone", { length: 64 }).notNull().default("Europe/Paris"),
   ...timestamps,
 }, (table) => [
-  uniqueIndex("users_auth_user_id_unique").on(table.authUserId).where(sql`${table.authUserId} IS NOT NULL`),
+  uniqueIndex("users_auth_user_id_unique").on(table.authUserId),
 ]);
 
 export const workspaces = pgTable("workspaces", {
