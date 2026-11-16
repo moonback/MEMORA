@@ -12,6 +12,7 @@ import { MemoryController } from "./memories/memory.controller.js";
 import { EntityController } from "./entities/entity.controller.js";
 import { SourceObjectController } from "./sources/source-object.controller.js";
 import { S3ObjectStorageService } from "./sources/object-storage.service.js";
+import { ObjectUploadCleanupService } from "./sources/object-upload-cleanup.service.js";
 
 @Module({
   imports: [],
@@ -20,6 +21,7 @@ import { S3ObjectStorageService } from "./sources/object-storage.service.js";
     { provide: APP_GUARD, useClass: AuthGuard },
     WorkspaceMembershipGuard,
     S3ObjectStorageService,
+    ObjectUploadCleanupService,
   ],
 })
 export class AppModule {}

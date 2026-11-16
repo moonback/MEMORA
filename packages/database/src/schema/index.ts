@@ -162,6 +162,13 @@ export const sourceObjects = pgTable("source_objects", {
   versionId: varchar("version_id", { length: 512 }),
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  verificationToken: uuid("verification_token"),
+  verificationLeaseUntil: timestamp("verification_lease_until", { withTimezone: true }),
+  cleanupLeaseToken: uuid("cleanup_lease_token"),
+  cleanupLeaseUntil: timestamp("cleanup_lease_until", { withTimezone: true }),
+  cleanupAttempts: integer("cleanup_attempts").notNull().default(0),
+  cleanupLastError: varchar("cleanup_last_error", { length: 80 }),
   ...timestamps,
 }, (table) => [
   foreignKey({ columns: [table.sourceId, table.workspaceId], foreignColumns: [sources.id, sources.workspaceId], name: "source_objects_source_workspace_fk" }).onDelete("cascade"),
