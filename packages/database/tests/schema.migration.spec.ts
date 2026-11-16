@@ -60,6 +60,19 @@ const suite = describe("MEMORA initial database migration", { skip: !databaseUrl
     }
   });
 
+  it("includes Better Auth identity tables and current workspace lifecycle columns", async () => {
+    const columns = await client.query<{ table_name: string; column_name: string }>(
+      `SELECT table_name, column_name FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND ((table_name = 'users' AND column_name = 'auth_user_id')
+           OR (table_name = 'workspaces' AND column_name IN ('description', 'metadata', 'archived_at')))`,
+    );
+    const keys = new Set(columns.rows.map((row) => `${row.table_name}.${row.column_name}`));
+    for (const key of ["users.auth_user_id", "workspaces.description", "workspaces.metadata", "workspaces.archived_at"]) {
+      assert.ok(keys.has(key), `Expected column ${key}`);
+    }
+  });
+
   it("enables and forces row-level security on tenant-owned tables", async () => {
     const result = await client.query<{ relname: string; relrowsecurity: boolean; relforcerowsecurity: boolean }>(
       `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity
