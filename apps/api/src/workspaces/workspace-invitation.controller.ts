@@ -18,6 +18,7 @@ import { queueAuthEmail } from "../auth/mailer.js";
 import { CurrentSession } from "../auth/current-session.decorator.js";
 import { CurrentWorkspaceMembership, RequireWorkspaceRoles } from "./workspace-membership.decorator.js";
 import { WorkspaceMembershipGuard, type WorkspaceMembershipContext } from "./workspace-membership.guard.js";
+import { canInviteRole } from "./workspace-rbac.js";
 
 type AuthSession = {
   user: { id: string; email: string; emailVerified: boolean };
@@ -46,13 +47,14 @@ export class WorkspaceInvitationController {
         issues: parsed.error.issues,
       });
     }
+    if (actor.workspaceType !== "shared") throw new BadRequestException("Les invitations sont réservées aux espaces partagés.");
     const email = parsed.data.email.toLowerCase();
     const role = parsed.data.role;
     if (email === session.user.email.toLowerCase()) {
       throw new BadRequestException("Vous ne pouvez pas vous inviter vous-même.");
     }
-    if (actor.role === "admin" && role === "admin") {
-      throw new ForbiddenException("Seul le propriétaire peut inviter un administrateur.");
+    if (!canInviteRole(actor.role, role)) {
+      throw new ForbiddenException("Votre rôle ne permet pas d'inviter ce niveau de permission.");
     }
 
     const existingMember = await authPool.query(
