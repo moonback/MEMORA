@@ -10,8 +10,10 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
   const suffix = randomUUID();
   const authUserA = randomUUID();
   const authUserB = randomUUID();
+  const authUserC = randomUUID();
   let userA: string;
   let userB: string;
+  let userC: string;
   let workspaceA: string;
   let workspaceB: string;
 
@@ -27,6 +29,11 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
     );
     userA = a.rows[0].id;
     userB = b.rows[0].id;
+    const c = await admin.query(
+      "INSERT INTO users (email, auth_user_id) VALUES ($1, $2) RETURNING id",
+      [`rls-c-${suffix}@example.invalid`, authUserC],
+    );
+    userC = c.rows[0].id;
     const wa = await admin.query(
       "INSERT INTO workspaces (name, slug, owner_user_id) VALUES ('Tenant A', $1, $2) RETURNING id",
       [`rls-a-${suffix}`, userA],
@@ -45,6 +52,10 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
       "INSERT INTO sources (workspace_id, created_by_user_id, type, title) VALUES ($1, $2, 'manual', 'Private A'), ($3, $4, 'manual', 'Private B')",
       [workspaceA, userA, workspaceB, userB],
     );
+    await admin.query(
+      "INSERT INTO workspace_invitations (workspace_id, email, role, token_hash, expires_at, invited_by_user_id) VALUES ($1, $2, 'member', $3, now() + interval '1 day', $4)",
+      [workspaceA, `rls-c-${suffix}@example.invalid`, `test-token-${suffix}`, userA],
+    );
   });
 
   after(async () => {
@@ -52,6 +63,7 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
     if (workspaceB) await admin.query("DELETE FROM workspaces WHERE id = $1", [workspaceB]);
     if (userA) await admin.query("DELETE FROM users WHERE id = $1", [userA]);
     if (userB) await admin.query("DELETE FROM users WHERE id = $1", [userB]);
+    if (userC) await admin.query("DELETE FROM users WHERE id = $1", [userC]);
     await admin.end();
   });
 
@@ -97,6 +109,29 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
       ).then(() => null, (error: { code?: string }) => error);
       assert.equal(crossTenantMembership?.code, "42501");
       await app.query("ROLLBACK TO SAVEPOINT before_cross_tenant_membership_insert");
+      await app.query("ROLLBACK");
+    } finally {
+      await app.end();
+    }
+  });
+
+  it("allows a verified invitation recipient to read only the invited workspace", async () => {
+    const app = new Client({ connectionString: appUrl });
+    await app.connect();
+    try {
+      await app.query("BEGIN");
+      await app.query("SELECT set_config('app.auth_user_id', $1, true)", [authUserC]);
+      await app.query("SELECT set_config('app.user_id', $1, true)", [userC]);
+      await app.query("SELECT set_config('app.user_email', $1, true)", [`rls-c-${suffix}@example.invalid`]);
+      const invitation = await app.query(
+        "SELECT workspace_id FROM workspace_invitations WHERE token_hash = $1",
+        [`test-token-${suffix}`],
+      );
+      assert.deepEqual(invitation.rows.map((row) => row.workspace_id), [workspaceA]);
+      const invitedWorkspace = await app.query("SELECT id FROM workspaces WHERE id = $1", [workspaceA]);
+      assert.equal(invitedWorkspace.rowCount, 1);
+      const unrelatedWorkspace = await app.query("SELECT id FROM workspaces WHERE id = $1", [workspaceB]);
+      assert.equal(unrelatedWorkspace.rowCount, 0);
       await app.query("ROLLBACK");
     } finally {
       await app.end();
