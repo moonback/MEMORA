@@ -60,7 +60,10 @@ export default function SourceLibraryPage() {
   useEffect(() => {
     let active = true;
     void loadSources()
-      .then((items) => { if (active && items.length) void openSource(items[0]); })
+      .then((items) => {
+        const firstSource = items[0];
+        if (active && firstSource) void openSource(firstSource);
+      })
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Impossible de charger la bibliothèque."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
