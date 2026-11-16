@@ -25,6 +25,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora
+      DATABASE_APP_URL: postgresql://memora_app:memora_ci_app_password@localhost:5432/memora
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,6 +36,24 @@ jobs:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm db:migrate
+      - name: Provision restricted application database role
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $memora$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'memora_app') THEN
+              CREATE ROLE memora_app LOGIN PASSWORD 'memora_ci_app_password' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+            END IF;
+          END;
+          $memora$;
+          GRANT CONNECT ON DATABASE memora TO memora_app;
+          GRANT USAGE ON SCHEMA public TO memora_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO memora_app;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO memora_app;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO memora_app;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO memora_app;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO memora_app;
+          SQL
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

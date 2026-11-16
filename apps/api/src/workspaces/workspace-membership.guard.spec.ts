@@ -9,11 +9,13 @@ describe("workspace authorization wiring", () => {
     assert.match(source, /WorkspaceMembershipGuard/);
   });
 
-  it("requires active membership and rejects archived workspaces", async () => {
+  it("resolves active membership and archived state through the RLS context helper", async () => {
     const source = await readFile(new URL("./workspace-membership.guard.ts", import.meta.url), "utf8");
-    assert.match(source, /wm\.status = 'active'/);
-    assert.match(source, /if \(membership\.archived_at\)/);
+    const context = await readFile(new URL("../database/tenant-context.ts", import.meta.url), "utf8");
+    assert.match(source, /withWorkspaceContext/);
     assert.match(source, /allowedRoles\.includes\(membership\.role\)/);
+    assert.match(context, /status = 'active'/);
+    assert.match(context, /workspace\.archived_at/);
   });
 
   it("limits membership and invitation controllers with the membership guard", async () => {

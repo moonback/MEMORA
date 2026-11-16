@@ -8,12 +8,15 @@ import { ensurePersonalWorkspace } from "../workspaces/personal-workspace.servic
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", ".env") });
 
-const databaseUrl = process.env.DATABASE_URL ?? "postgresql://memora:change_me_locally@127.0.0.1:5432/memora";
+const databaseUrl = process.env.DATABASE_APP_URL ?? process.env.DATABASE_URL ?? "postgresql://memora:change_me_locally@127.0.0.1:5432/memora";
 const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 const secret = process.env.BETTER_AUTH_SECRET ?? "memora-local-development-secret-change-before-deploy";
 if (process.env.NODE_ENV === "production") {
   if (secret.length < 32 || secret.includes("replace-with") || !process.env.BETTER_AUTH_SECRET) {
     throw new Error("A unique BETTER_AUTH_SECRET of at least 32 characters is required in production.");
+  }
+  if (!process.env.DATABASE_APP_URL) {
+    throw new Error("DATABASE_APP_URL must use a dedicated PostgreSQL role without BYPASSRLS in production.");
   }
   if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_FROM) {
     throw new Error("SMTP_HOST, SMTP_PORT and SMTP_FROM are required in production.");
@@ -63,6 +66,7 @@ export const auth = betterAuth({
           const client = await authPool.connect();
           try {
             await client.query("BEGIN");
+            await client.query("SELECT set_config('app.auth_user_id', $1, true)", [user.id]);
             const appUser = await client.query<{ id: string }>(
               `INSERT INTO users (email, display_name, auth_user_id)
                VALUES ($1, $2, $3)
@@ -74,6 +78,8 @@ export const auth = betterAuth({
             const appUserRow = appUser.rows[0];
             if (!appUserRow) throw new Error("Could not provision the MEMORA user profile.");
             const userId = appUserRow.id;
+            await client.query("SELECT set_config('app.user_id', $1, true)", [userId]);
+            await client.query("SELECT set_config('app.user_email', $1, true)", [user.email]);
             await ensurePersonalWorkspace(client, userId);
             await client.query("COMMIT");
           } catch (error) {

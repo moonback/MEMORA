@@ -26,7 +26,7 @@ const suite = describe("MEMORA initial database migration", { skip: !databaseUrl
     );
     workspaceA = first.rows[0].id;
     const second = await client.query(
-      "INSERT INTO workspaces (name, slug, owner_user_id) VALUES ($1, $2, $3) RETURNING id",
+      "INSERT INTO workspaces (name, slug, type, owner_user_id) VALUES ($1, $2, 'shared', $3) RETURNING id",
       ["Schema test B", `schema-test-b-${suffix}`, userId],
     );
     workspaceB = second.rows[0].id;
@@ -54,9 +54,42 @@ const suite = describe("MEMORA initial database migration", { skip: !databaseUrl
       "users", "workspaces", "workspace_members", "workspace_invitations",
       "consents", "sources", "source_chunks", "memories", "memory_evidence",
       "entities", "memory_entities", "entity_relations", "audit_logs",
-      "_memora_migrations",
+      "_memora_migrations", "user", "session", "account", "verification",
     ]) {
       assert.ok(names.has(name), `Expected table ${name} to exist`);
+    }
+  });
+
+  it("includes Better Auth identity tables and current workspace lifecycle columns", async () => {
+    const columns = await client.query<{ table_name: string; column_name: string }>(
+      `SELECT table_name, column_name FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND ((table_name = 'users' AND column_name = 'auth_user_id')
+           OR (table_name = 'workspaces' AND column_name IN ('description', 'metadata', 'archived_at')))`,
+    );
+    const keys = new Set(columns.rows.map((row) => `${row.table_name}.${row.column_name}`));
+    for (const key of ["users.auth_user_id", "workspaces.description", "workspaces.metadata", "workspaces.archived_at"]) {
+      assert.ok(keys.has(key), `Expected column ${key}`);
+    }
+  });
+
+  it("enables and forces row-level security on tenant-owned tables", async () => {
+    const result = await client.query<{ relname: string; relrowsecurity: boolean; relforcerowsecurity: boolean }>(
+      `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public'
+         AND c.relname = ANY($1::text[])`,
+      [[
+        "users", "workspaces", "workspace_members", "workspace_invitations", "consents",
+        "sources", "source_chunks", "memories", "memory_evidence", "entities",
+        "memory_entities", "entity_relations", "audit_logs",
+      ]],
+    );
+    assert.equal(result.rows.length, 13);
+    for (const table of result.rows) {
+      assert.equal(table.relrowsecurity, true, `RLS should be enabled on ${table.relname}`);
+      assert.equal(table.relforcerowsecurity, true, `RLS should be forced on ${table.relname}`);
     }
   });
 

@@ -38,7 +38,7 @@
 
 The reviewed SQL files in `packages/database/migrations` are the migration source of truth. They are applied in lexical order by `pnpm db:migrate` (or `pnpm --filter @memora/database db:migrate`). The runner records applied filenames in `public._memora_migrations`, applies each file in a transaction, and uses a PostgreSQL advisory lock to prevent concurrent migration runners.
 
-Add future migrations as the next zero-padded SQL filename (for example, `0004_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
+Add future migrations as the next zero-padded SQL filename (for example, `0003_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
 
 The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the application-domain model for typed queries and Drizzle Studio. Better Auth's identity/session tables are maintained in reviewed SQL and accessed through its PostgreSQL adapter. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
 
@@ -49,6 +49,10 @@ The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the applic
 3. Run `pnpm db:migrate`.
 4. Verify tables and constraints in PostgreSQL before connecting application services.
 
-## Not yet enabled
+## Row-Level Security
 
-RLS policies, per-request workspace context, automated cross-tenant negative tests, retention jobs, and vector embeddings/indexes are subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
+MEM-014 adds and forces PostgreSQL RLS on users, workspaces, memberships, invitations, consents, sources, chunks, memories, evidence, entities, relations and audit logs. API requests establish transaction-local user and workspace context only after resolving the authenticated identity and verifying active membership. Automated negative tests use a restricted non-owner application role and assert cross-workspace reads, source writes and membership injection are denied. See `POSTGRESQL_RLS_SETUP.md` for role provisioning and environment configuration.
+
+RLS requires a dedicated runtime database role (`DATABASE_APP_URL`) without superuser, table-owner or `BYPASSRLS` privileges. `DATABASE_URL` remains reserved for migrations. Do not use a superuser runtime connection in production.
+
+Retention jobs and vector embeddings/indexes remain subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
