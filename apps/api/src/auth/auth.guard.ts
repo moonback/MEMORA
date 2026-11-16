@@ -12,12 +12,6 @@ import { IS_PUBLIC_KEY } from "./public.decorator.js";
 
 type AuthSession = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
-declare module "express-serve-static-core" {
-  interface Request {
-    authSession?: AuthSession;
-  }
-}
-
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
