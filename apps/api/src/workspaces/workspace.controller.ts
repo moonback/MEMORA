@@ -77,6 +77,7 @@ export class WorkspaceController {
       );
       const workspace = result.rows[0];
       if (!workspace) throw new Error("Shared workspace could not be created.");
+      await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspace.id]);
       await client.query(
         `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
          VALUES ($1, $2, 'owner', 'active', now())`,
