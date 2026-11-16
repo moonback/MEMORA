@@ -461,3 +461,22 @@ CREATE POLICY audit_logs_insert_members ON audit_logs
   );
 
 -- No UPDATE/DELETE policies are defined for audit logs or consent deletion.
+
+-- Prevent changing tenant/identity ownership columns even when a row-level
+-- policy permits an otherwise authorized update.
+REVOKE UPDATE ON TABLE users FROM memora_app;
+GRANT UPDATE (email, display_name, locale, time_zone, updated_at) ON TABLE users TO memora_app;
+
+REVOKE UPDATE ON TABLE workspaces FROM memora_app;
+GRANT UPDATE (name, description, metadata, archived_at, updated_at) ON TABLE workspaces TO memora_app;
+
+REVOKE UPDATE ON TABLE workspace_members FROM memora_app;
+GRANT UPDATE (role, status, joined_at, updated_at) ON TABLE workspace_members TO memora_app;
+
+REVOKE UPDATE ON TABLE workspace_invitations FROM memora_app;
+GRANT UPDATE (role, token_hash, expires_at, accepted_at, invited_by_user_id, updated_at)
+  ON TABLE workspace_invitations TO memora_app;
+
+REVOKE UPDATE ON TABLE consents FROM memora_app;
+GRANT UPDATE (status, policy_version, details, decided_at, updated_at)
+  ON TABLE consents TO memora_app;
