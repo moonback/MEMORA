@@ -8,7 +8,7 @@
     "build": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"console.log('Database integration tests require PostgreSQL; run pnpm db:migrate against the test database')\""
+    "test": "tsx --test tests/*.spec.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.5",
