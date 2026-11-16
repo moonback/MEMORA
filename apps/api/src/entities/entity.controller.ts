@@ -267,13 +267,15 @@ export class EntityController {
     @Body() body: unknown,
   ) {
     const input = parseOrBadRequest(createEntityRelationSchema, body, "Relation invalide.");
+    // Keep the output safe for callers even when Zod's inferred type marks a defaulted array optional.
+    const evidence = input.evidence ?? [];
     if (input.toEntityId === entityId) throw new BadRequestException("Une entité ne peut pas être reliée à elle-même.");
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
       const ids = [entityId, input.toEntityId];
       const entities = await client.query("SELECT id FROM entities WHERE workspace_id = $1 AND id = ANY($2::uuid[])", [workspaceId, ids]);
       if (entities.rowCount !== 2) throw new NotFoundException("Entité source ou cible introuvable dans cet espace.");
-      if (input.evidence.length) {
-        const chunkIds = input.evidence.map((item) => item.sourceChunkId);
+      if (evidence.length) {
+        const chunkIds = evidence.map((item) => item.sourceChunkId);
         const chunks = await client.query("SELECT id FROM source_chunks WHERE workspace_id = $1 AND id = ANY($2::uuid[])", [workspaceId, chunkIds]);
         if (chunks.rowCount !== new Set(chunkIds).size) throw new BadRequestException("Une ou plusieurs preuves ne correspondent pas à une source de cet espace.");
       }
@@ -287,14 +289,14 @@ export class EntityController {
           input.validFrom ? new Date(input.validFrom) : null, input.validUntil ? new Date(input.validUntil) : null],
       );
       const relation = inserted.rows[0];
-      for (const evidence of input.evidence) {
+      for (const item of evidence) {
         await client.query(
           `INSERT INTO entity_relation_evidence (workspace_id, relation_id, source_chunk_id, quote, confidence)
            VALUES ($1, $2, $3, $4, $5)`,
-          [workspaceId, relation.id, evidence.sourceChunkId, evidence.quote ?? null, evidence.confidence ?? null],
+          [workspaceId, relation.id, item.sourceChunkId, item.quote ?? null, item.confidence ?? null],
         );
       }
-      return { relation, evidenceCount: input.evidence.length };
+      return { relation, evidenceCount: evidence.length };
     });
   }
 
