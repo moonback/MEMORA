@@ -41,7 +41,7 @@ export default function HomePage() {
         </div>
         <div className="section-heading"><div><h2>Commencez simplement</h2><p>Choisissez ce que vous souhaitez confier à MEMORA.</p></div><span className="private-label"><ShieldCheck size={14}/> Vous gardez le contrôle</span></div>
         <div className="action-grid">
-          <article className="action-card featured"><span className="action-icon"><UploadCloud size={20}/></span><div><h3>Importer un document</h3><p>PDF, Word, texte ou image. Vous choisissez ce qui entre dans votre mémoire.</p></div><a href="/workspaces" aria-label="Importer un document"><ArrowUpRight size={17}/></a></article>
+          <article className="action-card featured"><span className="action-icon"><UploadCloud size={20}/></span><div><h3>Importer un document</h3><p>L’import de fichiers sera disponible dans une prochaine étape.</p></div><button aria-label="Import de document bientôt disponible" disabled><ArrowUpRight size={17}/></button></article>
           <article className="action-card"><span className="action-icon note"><Plus size={20}/></span><div><h3>Écrire une note</h3><p>Ajoutez une idée, une information ou un souvenir important.</p></div><a href="/workspaces" aria-label="Créer une note"><ArrowUpRight size={17}/></a></article>
         </div>
         <div className="section-heading suggestions-heading"><div><h2>Ce que MEMORA vous aidera à faire</h2><p>Une mémoire utile, contextualisée et vérifiable.</p></div></div>
