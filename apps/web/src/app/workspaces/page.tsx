@@ -20,7 +20,8 @@ type Member = { userId: string; email: string; displayName: string | null; role:
 type Invitation = { id: string; email: string; role: string; expiresAt: string; acceptedAt: string | null; invitedAt: string; status: "pending" | "expired" | "accepted" };
 
 async function request(path: string, init?: RequestInit) {
-  const response = await fetch(`${apiUrl}${path}`, { ...init, credentials: "include", headers: { ...(init?.headers ?? {}) } });
+  const headers = new Headers(init?.headers);
+  const response = await fetch(`${apiUrl}${path}`, { ...init, credentials: "include", headers });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.message ?? "La requête n'a pas abouti.");
   return payload;
@@ -50,7 +51,7 @@ export default function WorkspacesPage() {
     setWorkspaces(items);
     if (!selectedId && items.length) {
       const preferred = items.find((item) => item.workspace.type === "shared") ?? items[0];
-      setSelectedId(preferred.workspace.id);
+      if (preferred) setSelectedId(preferred.workspace.id);
     } else if (selectedId && !items.some((item) => item.workspace.id === selectedId)) {
       setSelectedId(items[0]?.workspace.id ?? "");
     }
@@ -74,7 +75,7 @@ export default function WorkspacesPage() {
   }, []);
 
   useEffect(() => {
-    if (!selected) {
+    if (!selected || selected.workspace.archivedAt) {
       setMembers([]);
       setInvitations([]);
       return;
