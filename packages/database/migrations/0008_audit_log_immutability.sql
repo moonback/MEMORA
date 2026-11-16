@@ -65,7 +65,10 @@ BEGIN
   -- Permit referential cascades (for example, account/workspace erasure), but
   -- reject direct edits or deletes of individual audit events.
   IF pg_trigger_depth() > 1 THEN
-    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+    IF TG_OP = 'DELETE' THEN
+      RETURN OLD;
+    END IF;
+    RETURN NEW;
   END IF;
   RAISE EXCEPTION 'audit log events are append-only'
     USING ERRCODE = '55000';
