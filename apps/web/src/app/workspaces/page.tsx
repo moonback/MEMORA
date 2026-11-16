@@ -227,7 +227,7 @@ export default function WorkspacesPage() {
             <section className="settings-card workspace-detail">
               {selected ? (
                 <>
-                  <div className="settings-card-heading"><div><h2>{selected.workspace.name}</h2><p>{selected.workspace.description || selected.workspace.slug}</p></div><span className="workspace-state">{selected.role}</span></div>
+                  <div className="settings-card-heading"><div><h2>{selected.workspace.name}</h2><p>{selected.workspace.description || selected.workspace.slug}</p></div><span className={selected.workspace.archivedAt ? "workspace-state archived" : "workspace-state"}>{selected.workspace.archivedAt ? "Archivé" : selected.role}</span></div>
                   <div className="settings-card-heading members-heading"><div><h3>Membres</h3><p>{members.length} membre(s)</p></div></div>
                   <div className="workspace-member-list">
                     {members.map((member) => {
@@ -247,7 +247,7 @@ export default function WorkspacesPage() {
                     })}
                   </div>
 
-                  {selected.workspace.type === "shared" && canManage ? (
+                  {selected.workspace.type === "shared" && canManage && !selected.workspace.archivedAt ? (
                     <>
                       <div className="settings-card-heading members-heading"><div><h3>Inviter une personne</h3><p>Invitation privée valable 7 jours.</p></div></div>
                       <form className="settings-form invite-form" onSubmit={sendInvitation}>
