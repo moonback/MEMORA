@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nest
 import { Job, Queue, Worker } from "bullmq";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
-import { assertSafeJobData, redisConnectionOptions, SOURCE_INGESTION_QUEUE, type SourceIngestionJobData, retryDelayMs } from "./source-ingestion-queue.js";
+import { assertSafeJobData, redisConnectionOptions, SOURCE_INGESTION_QUEUE, type SourceIngestionJobData } from "./source-ingestion-queue.js";
 import { SOURCE_INGESTION_PROCESSOR, type SourceIngestionProcessor, PermanentSourceIngestionError } from "./source-ingestion-processor.js";
 
 interface ClaimedIngestion {
@@ -26,6 +26,9 @@ export class SourceIngestionWorkerService implements OnModuleInit, OnModuleDestr
   constructor(@Inject(SOURCE_INGESTION_PROCESSOR) private readonly processor: SourceIngestionProcessor) {
     const databaseUrl = process.env.DATABASE_SYSTEM_URL ?? process.env.DATABASE_URL;
     if (!databaseUrl) throw new Error("DATABASE_SYSTEM_URL or DATABASE_URL is required for the ingestion worker.");
+    if (this.heartbeatMs >= this.leaseSeconds * 1000) {
+      throw new Error("INGESTION_WORKER_HEARTBEAT_MS must be shorter than the worker lease.");
+    }
     this.pool = new Pool({ connectionString: databaseUrl, max: 5 });
     this.queue = new Queue<SourceIngestionJobData>(SOURCE_INGESTION_QUEUE, { connection: redisConnectionOptions() });
   }
@@ -101,12 +104,11 @@ export class SourceIngestionWorkerService implements OnModuleInit, OnModuleDestr
       await this.pool.query(
         `UPDATE public.source_ingestions
          SET status = $5, completed_at = CASE WHEN $5 = 'failed' THEN now() ELSE NULL END,
-             available_at = CASE WHEN $5 = 'queued' THEN now() + ($6 * interval '1 millisecond') ELSE available_at END,
-             lease_token = NULL, lease_until = NULL, last_error_code = $7, updated_at = now()
+             available_at = CASE WHEN $5 = 'queued' THEN now() ELSE available_at END,
+             lease_token = NULL, lease_until = NULL, last_error_code = $6, updated_at = now()
          WHERE id = $1 AND source_id = $2 AND workspace_id = $3
            AND status = 'processing' AND lease_token = $4`,
-        [data.ingestionId, data.sourceId, data.workspaceId, leaseToken, permanent || exhausted ? "failed" : "queued",
-          retryDelayMs(current.attempts), code],
+        [data.ingestionId, data.sourceId, data.workspaceId, leaseToken, permanent || exhausted ? "failed" : "queued", code],
       );
       if (!permanent && !exhausted) throw new Error("source_ingestion_transient_failure");
     } finally {

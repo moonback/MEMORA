@@ -91,8 +91,20 @@ export class SourceIngestionDispatcherService implements OnModuleInit, OnModuleD
         workspaceId: row.workspace_id,
       };
       try {
+        const stableJobId = ingestionJobId(row.ingestion_id);
+        const existing = await this.queue.getJob(stableJobId);
+        if (existing) {
+          const state = await existing.getState();
+          if (state === "completed" || state === "failed") {
+            const ingestion = await this.pool.query<{ status: string }>(
+              "SELECT status FROM public.source_ingestions WHERE id = $1 AND source_id = $2 AND workspace_id = $3",
+              [row.ingestion_id, row.source_id, row.workspace_id],
+            );
+            if (ingestion.rows[0]?.status === "queued") await existing.remove();
+          }
+        }
         await this.queue.add("process-source-ingestion", data, {
-          jobId: ingestionJobId(row.ingestion_id),
+          jobId: stableJobId,
         });
         await this.pool.query(
           `UPDATE public.source_ingestion_outbox
