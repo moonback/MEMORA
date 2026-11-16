@@ -60,7 +60,7 @@ describe("MEM-021 PostgreSQL object upload lifecycle", { skip: !adminUrl || !app
     assert.equal(result.rows[0].status, "pending");
     assert.ok(new Date(result.rows[0].expires_at).getTime() < Date.now());
     await assert.rejects(admin.query(
-      "UPDATE source_objects SET status = 'verified', uploaded_at = now(), verified_at = now() WHERE id = $1",
+      "UPDATE source_objects SET status = 'verified', uploaded_at = now(), verified_at = expires_at - interval '1 second' WHERE id = $1",
       [objectId],
     ), (error: { code?: string }) => error.code === "23514");
   });

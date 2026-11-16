@@ -45,8 +45,14 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'invalid source object lifecycle transition' USING ERRCODE = '23514';
   END IF;
-  IF NEW.status = 'verified' AND NEW.verified_at IS NOT NULL AND NEW.verified_at >= NEW.expires_at THEN
+  IF OLD.status = 'pending' AND NEW.status = 'verified' AND OLD.expires_at <= clock_timestamp() THEN
     RAISE EXCEPTION 'expired source objects cannot be verified' USING ERRCODE = '23514';
+  END IF;
+  IF OLD.status = 'pending' AND NEW.expires_at IS DISTINCT FROM OLD.expires_at THEN
+    RAISE EXCEPTION 'pending upload expiry is immutable' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.status = 'verified' AND NEW.verified_at IS NOT NULL AND NEW.verified_at >= NEW.expires_at THEN
+    RAISE EXCEPTION 'verified timestamp must precede upload expiry' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
 END;

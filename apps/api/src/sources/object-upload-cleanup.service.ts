@@ -98,7 +98,7 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
         completed += 1;
       } catch {
         // Persist only a fixed category, never provider diagnostics, object coordinates or content.
-        await authPool.query(
+        await this.pool.query(
           `UPDATE source_objects SET cleanup_lease_token = NULL, cleanup_lease_until = NULL,
              cleanup_attempts = cleanup_attempts + 1, cleanup_last_error = 'storage_delete_failed',
              updated_at = now()
