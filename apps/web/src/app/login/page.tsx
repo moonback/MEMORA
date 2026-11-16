@@ -18,9 +18,16 @@ export default function LoginPage() {
     setBusy(true);
     setMessage("");
     try {
+      const requestedReturnTo = new URLSearchParams(window.location.search).get("returnTo");
+      const candidate = requestedReturnTo
+        ? new URL(requestedReturnTo, window.location.origin)
+        : new URL("/", window.location.origin);
+      const callbackURL = candidate.origin === window.location.origin
+        ? candidate.toString()
+        : `${window.location.origin}/`;
       const result = mode === "signup"
-        ? await authClient.signUp.email({ name, email, password, callbackURL: `${window.location.origin}/` })
-        : await authClient.signIn.email({ email, password, callbackURL: "/" });
+        ? await authClient.signUp.email({ name, email, password, callbackURL })
+        : await authClient.signIn.email({ email, password, callbackURL });
       if (result.error) {
         setMessage(result.error.message ?? "Impossible de terminer cette opération.");
       } else if (mode === "signup") {
