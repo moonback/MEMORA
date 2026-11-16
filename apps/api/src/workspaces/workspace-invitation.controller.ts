@@ -239,6 +239,14 @@ export class InvitationAcceptanceController {
       const user = userResult.rows[0];
       if (!user) throw new NotFoundException("Profil MEMORA introuvable.");
 
+      const existingMembership = await client.query<{ status: string }>(
+        "SELECT status FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 FOR UPDATE",
+        [invitation.workspace_id, user.id],
+      );
+      if (existingMembership.rows[0]?.status === "active") {
+        throw new ConflictException("Vous êtes déjà membre de cet espace.");
+      }
+
       await client.query(
         `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
          VALUES ($1, $2, $3, 'active', now())
