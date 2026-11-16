@@ -60,7 +60,6 @@ describe(
     let secondDispatcher: SourceIngestionDispatcherService;
     let worker: SourceIngestionWorkerService;
     const ingestionIds: string[] = [];
-    const sourceIds: string[] = [];
 
     const processor: SourceIngestionProcessor = {
       async process(context: SourceIngestionContext): Promise<void> {
@@ -84,7 +83,6 @@ describe(
         [workspaceId, userId, title],
       );
       const sourceId = source.rows[0]!.id;
-      sourceIds.push(sourceId);
       await admin.query(
         "UPDATE public.sources SET status = 'ready', processed_at = now() WHERE id = $1",
         [sourceId],
@@ -179,7 +177,7 @@ describe(
 
       assert.equal(await dispatcher.dispatchBatch(), 3, "dispatcher must publish all three durable outbox events");
 
-      const successJob = await queue.getJob(ingestionJobId(success.ingestionId));
+      const successJob = await queue!.getJob(ingestionJobId(success.ingestionId));
       assert.ok(successJob, "published ingestion must exist in real Redis/BullMQ");
       assert.deepEqual(Object.keys(successJob.data).sort(), ["ingestionId", "sourceId", "workspaceId"]);
       assert.equal(successJob.data.ingestionId, success.ingestionId);
