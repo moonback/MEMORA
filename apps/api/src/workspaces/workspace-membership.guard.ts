@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CanActivate,
   ConflictException,
   ExecutionContext,
@@ -7,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
+import { z } from "zod";
 import { authPool } from "../auth/auth.js";
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
@@ -34,6 +36,7 @@ export class WorkspaceMembershipGuard implements CanActivate {
     const session = request.authSession;
     const workspaceId = request.params.workspaceId;
     if (!session || !workspaceId) throw new ForbiddenException("Contexte de session ou d’espace manquant.");
+    if (!z.string().uuid().safeParse(workspaceId).success) throw new BadRequestException("Identifiant d’espace invalide.");
 
     const result = await authPool.query<{
       user_id: string;
