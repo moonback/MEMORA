@@ -58,6 +58,8 @@ export class WorkspaceInvitationController {
       throw new ForbiddenException("Votre rôle ne permet pas d'inviter ce niveau de permission.");
     }
 
+    const { token, tokenHash } = createInvitationToken();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const client = await authPool.connect();
     let saved: { id: string; email: string; role: string; expires_at: Date } | undefined;
     try {
