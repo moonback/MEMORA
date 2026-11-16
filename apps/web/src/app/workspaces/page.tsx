@@ -227,7 +227,7 @@ export default function WorkspacesPage() {
             <section className="settings-card workspace-detail">
               {selected ? (
                 <>
-                  <div className="settings-card-heading"><div><h2>{selected.workspace.name}</h2><p>{selected.workspace.description || selected.workspace.slug}</p></div><span className={selected.workspace.archivedAt ? "workspace-state archived" : "workspace-state"}>{selected.workspace.archivedAt ? "Archivé" : selected.role}</span></div>
+                  <div className="settings-card-heading"><div><h2>{selected.workspace.name}</h2><p>{selected.workspace.description || selected.workspace.slug}</p></div><div className="workspace-detail-actions"><Link href={`/workspaces/${selected.workspace.id}/sources`} className="workspace-library-link">Bibliothèque de sources →</Link><span className={selected.workspace.archivedAt ? "workspace-state archived" : "workspace-state"}>{selected.workspace.archivedAt ? "Archivé" : selected.role}</span></div></div>
                   <div className="settings-card-heading members-heading"><div><h3>Membres</h3><p>{members.length} membre(s)</p></div></div>
                   <div className="workspace-member-list">
                     {members.map((member) => {
