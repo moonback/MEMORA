@@ -1,3 +1,5 @@
+import { AuthGate } from "../components/auth-gate";
+
 import { ArrowUpRight, Bell, Bookmark, Brain, CalendarDays, ChevronDown, CircleHelp, FileText, Folder, LayoutDashboard, Plus, Search, Settings2, ShieldCheck, Sparkles, UploadCloud, Users, Workflow } from "lucide-react";
 
 const sections = [
@@ -12,7 +14,7 @@ const suggestions = [
 ];
 
 export default function HomePage() {
-  return <main className="shell">
+  return <AuthGate><main className="shell">
     <aside className="sidebar">
       <a className="brand" href="#"><span className="brand-mark"><Brain size={19}/></span><span>MEMORA</span></a>
       <div className="workspace-switch"><span className="workspace-avatar">M</span><span><b>Mon espace</b><small>Espace personnel</small></span><ChevronDown size={15}/></div>
@@ -46,5 +48,5 @@ export default function HomePage() {
         <footer className="footer-note"><ShieldCheck size={15}/> Vos informations restent privées. Rien n'est capturé sans votre autorisation.</footer>
       </div>
     </section>
-  </main>;
+  </main></AuthGate>;
 }
