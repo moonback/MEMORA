@@ -17,7 +17,7 @@ async function bootstrap() {
     },
   });
 
-  app.use("/api/auth/*splat", toNodeHandler(auth));
+  app.getHttpAdapter().getInstance().all("/api/auth/*splat", toNodeHandler(auth));
   app.setGlobalPrefix("api");
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   const port = Number(process.env.API_PORT ?? 4000);
