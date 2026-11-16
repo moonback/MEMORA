@@ -98,7 +98,7 @@ export async function withWorkspaceContext<T>(
   workspaceId: string,
   operation: (client: PoolClient, context: { user: TenantUser; membership: TenantMembership }) => Promise<T>,
 ): Promise<T> {
-  const client = await authPool.connect();
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const context = await beginWorkspaceContext(client, authUserId, workspaceId);
