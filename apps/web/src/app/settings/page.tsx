@@ -171,7 +171,7 @@ export default function SettingsPage() {
                     const isCurrent = session.id === currentSession?.session.id;
                     return <article className="session-item" key={session.id}>
                       <span className="session-device">⌘</span>
-                      <div className="session-details"><b>{session.userAgent || "Appareil / navigateur inconnu"} {isCurrent && <em>Session actuelle</em>}</b><small>{session.ipAddress || "Adresse IP non disponible"} · Expire le {new Date(session.expiresAt).toLocaleDateString(locale)}</small></div>
+                      <div className="session-details"><b>{session.userAgent || "Appareil / navigateur inconnu"} {isCurrent && <em>Session actuelle</em>}</b><small>{session.ipAddress || "Adresse IP non disponible"} · Expire le {new Date(session.expiresAt instanceof Date ? session.expiresAt.getTime() : session.expiresAt).toLocaleDateString(locale)}</small></div>
                       <button type="button" disabled={isCurrent} onClick={() => void revokeSession(session)}>{isCurrent ? "Cet appareil" : "Révoquer"}</button>
                     </article>;
                   })}
