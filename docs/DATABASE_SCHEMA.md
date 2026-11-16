@@ -64,3 +64,7 @@ MEM-015 exposes authenticated workspace-scoped source metadata and chunk endpoin
 ## Memory lifecycle and evidence
 
 MEM-016 exposes workspace-scoped memory CRUD and lifecycle endpoints. Memories preserve their semantic type, content, summary, confidence, event time, validity interval and structured attributes. Evidence rows link memories to source chunks through composite workspace-qualified foreign keys; evidence records retain classification, optional excerpt, confidence and creation time. Supersession creates a new memory linked to the prior record and marks the prior record `superseded` rather than overwriting history. See `MEMORIES_API.md`.
+
+## Audit trail (MEM-018)
+
+The existing `audit_logs` table is now populated by PostgreSQL triggers for INSERT/UPDATE operations on sources, memories, entities and entity relations. Audit writes occur in the same transaction as the business mutation. Metadata is limited to structural information and safe changed-column names; private values are not copied. RLS scopes audit reads/inserts to the active workspace and validates the actor. Direct UPDATE/DELETE is rejected by a database trigger, while referential cascades remain available for workspace/account erasure. See `AUDIT_LOG.md`.
