@@ -16,7 +16,7 @@
 | Identity | users, user, session, account, verification | UUID-based MEMORA profile plus Better Auth credentials, sessions and verification tokens |
 | Workspace | workspaces, workspace_members, workspace_invitations | Personal/shared spaces, owner metadata, reversible archive state, membership and invitations |
 | Privacy | consents | Purpose-specific, versioned consent history |
-| Capture | sources, source_chunks | Imported origin records and normalized text chunks |
+| Capture | sources, source_chunks, source_objects | Imported origin records, normalized text chunks and private object-storage metadata |
 | Memory | memories, memory_evidence | Typed, temporal memories with provenance |
 | Knowledge graph | entities, memory_entities, entity_relations, entity_relation_evidence | Canonical entities, memory mentions, typed relations and source provenance |
 | Governance | audit_logs | Activity and security events |
@@ -59,7 +59,7 @@ Retention jobs and vector embeddings/indexes remain subsequent milestones. Bette
 
 ## Source capture API
 
-MEM-015 exposes authenticated workspace-scoped source metadata and chunk endpoints. Source creation stores origin type, title, original filename, MIME type, SHA-256 checksum, capture timestamp and bounded structured metadata. Sources begin in `pending`; replacing the normalized chunk set is transactional and marks the source `ready`. Chunks preserve ordinal, token count, page number, media time offsets and metadata. Archiving is soft and retains provenance. Binary upload and object storage are intentionally not part of MEM-015; see `SOURCES_API.md`.
+MEM-015 exposes authenticated workspace-scoped source metadata and chunk endpoints. Source creation stores origin type, title, original filename, MIME type, SHA-256 checksum, capture timestamp and bounded structured metadata. Sources begin in `pending`; replacing the normalized chunk set is transactional and marks the source `ready`. Chunks preserve ordinal, token count, page number, media time offsets and metadata. Archiving is soft and retains provenance. Binary upload and object storage are intentionally not part of MEM-015; see `SOURCES_API.md`. MEM-019 adds the workspace-scoped `source_objects` metadata table, with provider/bucket/object coordinates, upload state, size, checksum and verification timestamps. Object bytes remain outside PostgreSQL in a private EU-resident S3-compatible store; see `OBJECT_STORAGE.md`.
 
 ## Memory lifecycle and evidence
 
