@@ -58,3 +58,61 @@ export async function withUserContext<T>(
     client.release();
   }
 }
+
+const rlsProtectedTables = [
+  "users",
+  "workspaces",
+  "workspace_members",
+  "workspace_invitations",
+  "consents",
+  "sources",
+  "source_chunks",
+  "memories",
+  "memory_evidence",
+  "entities",
+  "memory_entities",
+  "entity_relations",
+  "audit_logs",
+] as const;
+
+export async function assertRlsRuntimeRole(pool: Pool): Promise<void> {
+  const result = await pool.query<{
+    is_superuser: boolean;
+    bypasses_rls: boolean;
+    owns_rls_table: boolean;
+    protected_table_count: number;
+  }>(
+    `SELECT r.rolsuper AS is_superuser,
+            r.rolbypassrls AS bypasses_rls,
+            EXISTS (
+              SELECT 1 FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public'
+                AND c.relname = ANY($1::text[])
+                AND c.relrowsecurity
+                AND c.relowner = r.oid
+            ) AS owns_rls_table,
+            (
+              SELECT count(*)::int FROM pg_class c
+              JOIN pg_namespace n ON n.oid = c.relnamespace
+              WHERE n.nspname = 'public'
+                AND c.relname = ANY($1::text[])
+                AND c.relrowsecurity
+            ) AS protected_table_count
+     FROM pg_roles r
+     WHERE r.rolname = current_user`,
+    [rlsProtectedTables],
+  );
+  const role = result.rows[0];
+  if (
+    !role
+    || role.is_superuser
+    || role.bypasses_rls
+    || role.owns_rls_table
+    || role.protected_table_count !== rlsProtectedTables.length
+  ) {
+    throw new Error(
+      "Unsafe PostgreSQL runtime role: use DATABASE_APP_URL for a non-owner NOSUPERUSER NOBYPASSRLS role after applying all RLS migrations.",
+    );
+  }
+}
