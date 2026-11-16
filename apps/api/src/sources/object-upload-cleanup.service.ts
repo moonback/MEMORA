@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { authPool } from "../auth/auth.js";
+import { Pool } from "pg";
 import { S3ObjectStorageService } from "./object-storage.service.js";
 
 const CLEANUP_INTERVAL_MS = 60_000;
@@ -24,8 +24,19 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
   private readonly logger = new Logger(ObjectUploadCleanupService.name);
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
+  private pool: Pool;
+  private ownsPool = true;
 
-  constructor(private readonly storage: S3ObjectStorageService) {}
+  constructor(private readonly storage: S3ObjectStorageService) {
+    const connectionString = process.env.DATABASE_SYSTEM_URL ?? process.env.DATABASE_URL;
+    if (!connectionString) throw new Error("DATABASE_SYSTEM_URL or DATABASE_URL is required for object cleanup.");
+    this.pool = new Pool({ connectionString, max: 2 });
+  }
+
+  configurePoolForTests(pool: Pool): void {
+    this.pool = pool;
+    this.ownsPool = false;
+  }
 
   onModuleInit(): void {
     this.timer = setInterval(() => { void this.runSafely(); }, CLEANUP_INTERVAL_MS);
@@ -33,12 +44,13 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
     void this.runSafely();
   }
 
-  onModuleDestroy(): void {
+  async onModuleDestroy(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
+    if (this.ownsPool) await this.pool.end();
   }
 
   async runCleanupBatch(): Promise<number> {
-    const client = await authPool.connect();
+    const client = await this.pool.connect();
     let claimed: ExpiredObject[] = [];
     try {
       await client.query("BEGIN");
@@ -76,7 +88,7 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
       try {
         // S3 DeleteObject is idempotent. No PostgreSQL transaction or row lock is held here.
         await this.storage.deleteObject({ bucketName: object.bucket_name, objectKey: object.object_key });
-        await authPool.query(
+        await this.pool.query(
           `UPDATE source_objects SET status = 'deleted', cleanup_lease_token = NULL,
              cleanup_lease_until = NULL, cleanup_last_error = NULL, updated_at = now()
            WHERE id = $1 AND workspace_id = $2 AND status = 'pending'

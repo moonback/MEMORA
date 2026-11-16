@@ -88,7 +88,7 @@ export class SourceObjectController {
         `UPDATE source_objects SET verification_token = $3, verification_lease_until = now() + interval '2 minutes', updated_at = now()
          WHERE source_id = $1 AND workspace_id = $2 AND status = 'pending' AND expires_at > now()
            AND (verification_token IS NULL OR verification_lease_until <= now())
-           AND (cleanup_lease_token IS NULL OR cleanup_lease_until <= now())
+           AND cleanup_lease_token IS NULL
          RETURNING id, bucket_name, object_key, content_type, byte_size, checksum_sha256`,
         [sourceId, workspaceId, token],
       );
