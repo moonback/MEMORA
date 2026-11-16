@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getReadiness, type DependencyCheck } from "./health.checks";
+import { getReadiness, probeTcp, type DependencyCheck } from "./health.checks";
 
 describe("getReadiness", () => {
   it("reports ok only when both dependencies respond", async () => {
@@ -50,5 +50,31 @@ describe("getReadiness", () => {
     );
     assert.equal(result.status, "degraded");
     assert.equal(result.dependencies.database.status, "unavailable");
+  });
+});
+
+import { createServer } from "node:net";
+
+describe("probeTcp", () => {
+  it("detects an accepting TCP service", async () => {
+    const server = createServer();
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    assert.ok(address && typeof address !== "string");
+    try {
+      const result = await probeTcp(`redis://127.0.0.1:${address.port}`);
+      assert.equal(result.status, "ok");
+      assert.ok(typeof result.latencyMs === "number");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("returns unavailable for malformed URLs", async () => {
+    const result = await probeTcp("not-a-url");
+    assert.equal(result.status, "unavailable");
+    assert.equal(result.message, "Invalid connection URL");
   });
 });
