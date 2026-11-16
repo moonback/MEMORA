@@ -38,7 +38,7 @@ The reviewed SQL files in `packages/database/migrations` are the migration sourc
 
 Add future migrations as the next zero-padded SQL filename (for example, `0003_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
 
-The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the relational model for typed application queries and Drizzle Studio. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
+The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the application-domain model for typed queries and Drizzle Studio. Better Auth's identity/session tables are maintained in reviewed SQL and accessed through its PostgreSQL adapter. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
 
 ## Local setup
 
