@@ -7,7 +7,7 @@ import {
 } from "./source.controller.js";
 
 describe("source request contracts", () => {
-  it("accepts supported source types and normalizes SHA-256 checksums", () => {
+  it("accepts supported source types and a valid SHA-256 checksum", () => {
     const parsed = createSourceSchema.parse({
       type: "document",
       title: "Contrat",
