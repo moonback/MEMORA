@@ -34,6 +34,17 @@ Updated: 2026-11-16
 - MEM-021: after corrective commit `95d6273`, typecheck passed; PostgreSQL 30/30 and API 57/57 passed with zero failures/skips; API and Next.js production builds passed.
 - MEM-022: user reported typecheck and production build passed; PostgreSQL 32/32 and API 60/60 passed with zero failures/skips. Web/Shared test scripts remain placeholders.
 
+## In progress: MEM-024 durable ingestion foundation
+
+- Issue #44; branch `feature/MEM-024-durable-ingestion-orchestration`.
+- Migration `0011_source_ingestion_outbox.sql` adds workspace-scoped ingestion lifecycle and a restricted transactional outbox.
+- Source readiness and verified object completion create one idempotent outbox event in the same PostgreSQL transaction.
+- Verified binary objects automatically transition their source to ready; manual capture already uses the ready transition.
+- Source list/detail API responses expose the latest ingestion state and bounded attempt metadata.
+- Added PostgreSQL integration coverage for transaction rollback, idempotent enqueue, verified-object transition and tenant visibility.
+- Redis/BullMQ dispatch, worker execution, heartbeat/recovery and retry scheduling remain to be implemented; queued does not mean parsed or indexed.
+- Local migration, typecheck, test and build validation pending.
+
 ## In progress: MEM-023 secure binary file import
 
 - Issue #42; branch `feature/MEM-023-binary-file-import`.
