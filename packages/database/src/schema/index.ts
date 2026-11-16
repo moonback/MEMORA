@@ -1,5 +1,4 @@
 import {
-  boolean,
   check,
   index,
   integer,
@@ -36,11 +35,14 @@ export const relationTypeEnum = pgEnum("relation_type", ["related_to", "works_wi
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: varchar("email", { length: 320 }).notNull().unique(),
+  authUserId: varchar("auth_user_id", { length: 64 }),
   displayName: varchar("display_name", { length: 160 }),
   locale: varchar("locale", { length: 16 }).notNull().default("fr-FR"),
   timeZone: varchar("time_zone", { length: 64 }).notNull().default("Europe/Paris"),
   ...timestamps,
-});
+}, (table) => [
+  uniqueIndex("users_auth_user_id_unique").on(table.authUserId).where(sql`${table.authUserId} IS NOT NULL`),
+]);
 
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").defaultRandom().primaryKey(),
