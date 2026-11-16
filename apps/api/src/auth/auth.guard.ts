@@ -7,8 +7,8 @@ import {
 import { Reflector } from "@nestjs/core";
 import { fromNodeHeaders } from "better-auth/node";
 import type { Request } from "express";
-import { auth } from "./auth";
-import { IS_PUBLIC_KEY } from "./public.decorator";
+import { auth } from "./auth.js";
+import { IS_PUBLIC_KEY } from "./public.decorator.js";
 
 type AuthSession = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 
