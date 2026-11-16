@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { after, before, describe, it } from "node:test";
-import { SourceObjectController } from "./source-object.controller.js";
 import { WORKSPACE_ROLES_KEY } from "../workspaces/workspace-membership.guard.js";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
