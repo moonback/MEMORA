@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   ConflictException,
   Controller,
   Delete,
@@ -56,7 +57,7 @@ export class WorkspaceMembershipController {
     @Param("workspaceId") workspaceId: string,
     @Param("memberUserId") memberUserId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
-    body: unknown,
+    @Body() body: unknown,
   ) {
     const parsed = roleUpdateSchema.safeParse(body);
     if (!parsed.success) {
