@@ -41,3 +41,12 @@ CREATE POLICY source_objects_workspace_isolation ON public.source_objects
 
 COMMENT ON TABLE public.source_objects IS
   'Private object-storage coordinates and verified upload metadata. Object keys are generated server-side; buckets must remain private and EU-resident.';
+
+-- Local installations may already have provisioned the restricted runtime role.
+-- CI provisions it after migrations and grants all current tables in its workflow.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'memora_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON public.source_objects TO memora_app;
+  END IF;
+END $$;
