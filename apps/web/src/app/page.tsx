@@ -25,7 +25,7 @@ export default function HomePage() {
       <nav className="navigation"><a className="nav-item" href="#"><Folder size={17}/><span>Collections</span></a><a className="nav-item" href="#"><Sparkles size={17}/><span>Assistant mémoire</span><span className="soon">À venir</span></a></nav>
       <div className="sidebar-bottom">
         <div className="privacy-note"><ShieldCheck size={17}/><span><b>Vos données vous appartiennent</b><small>Capture sélective · Confidentialité</small></span></div>
-        <a className="nav-item" href="#"><Settings2 size={17}/><span>Paramètres</span></a><a className="nav-item" href="#"><CircleHelp size={17}/><span>Aide & support</span></a>
+        <a className="nav-item" href="/settings"><Settings2 size={17}/><span>Paramètres</span></a><a className="nav-item" href="#"><CircleHelp size={17}/><span>Aide & support</span></a>
         <div className="profile"><span className="profile-avatar">M</span><span><b>Mon compte</b><small>Configurer mon profil</small></span><ChevronDown size={15}/></div>
       </div>
     </aside>
