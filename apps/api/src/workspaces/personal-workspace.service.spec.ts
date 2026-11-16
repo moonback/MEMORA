@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { ensurePersonalWorkspace } from "./personal-workspace.service.js";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_APP_URL;
 const pool = new Pool({ connectionString: databaseUrl });
 
 describe("ensurePersonalWorkspace", { skip: !databaseUrl }, () => {
@@ -14,9 +14,11 @@ describe("ensurePersonalWorkspace", { skip: !databaseUrl }, () => {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
+      const authUserId = `test-auth-${randomUUID()}`;
+      await client.query("SELECT set_config('app.auth_user_id', $1, true)", [authUserId]);
       const createdUser = await client.query<{ id: string }>(
-        "INSERT INTO users (email, display_name) VALUES ($1, $2) RETURNING id",
-        [`workspace-${randomUUID()}@test.invalid`, "Workspace test"],
+        "INSERT INTO users (email, display_name, auth_user_id) VALUES ($1, $2, $3) RETURNING id",
+        [`workspace-${randomUUID()}@test.invalid`, "Workspace test", authUserId],
       );
       const user = createdUser.rows[0];
       assert.ok(user);
