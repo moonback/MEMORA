@@ -97,8 +97,8 @@ export default function WorkspacesPage() {
       setNewName("");
       setNewDescription("");
       setNotice("Espace partagé créé. Vous en êtes propriétaire.");
-      setSelectedId(result.workspace.id);
       await loadWorkspaces();
+      setSelectedId(result.workspace.id);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Impossible de créer l'espace.");
     } finally {
