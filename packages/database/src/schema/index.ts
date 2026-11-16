@@ -168,9 +168,9 @@ export const sourceObjects = pgTable("source_objects", {
   unique("source_objects_id_workspace_unique").on(table.id, table.workspaceId),
   unique("source_objects_source_unique").on(table.sourceId),
   unique("source_objects_storage_address_unique").on(table.storageProvider, table.bucketName, table.objectKey),
-  check("source_objects_status_check", sql`${table.status} IN ('pending', 'uploaded', 'verified', 'failed', 'deleted')`),
-  check("source_objects_byte_size_check", sql`${table.byteSize} IS NULL OR ${table.byteSize} BETWEEN 1 AND 104857600`),
-  check("source_objects_checksum_check", sql`${table.checksumSha256} IS NULL OR ${table.checksumSha256} ~ '^[a-fA-F0-9]{64}
+  check("source_objects_status_check", sql.raw("status IN ('pending', 'uploaded', 'verified', 'failed', 'deleted')")),
+  check("source_objects_byte_size_check", sql.raw("byte_size IS NULL OR byte_size BETWEEN 1 AND 104857600")),
+  check("source_objects_checksum_check", sql.raw("checksum_sha256 IS NULL OR checksum_sha256 ~ '^[a-fA-F0-9]{64}
   id: uuid("id").defaultRandom().primaryKey(),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
   createdByUserId: uuid("created_by_user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
@@ -294,8 +294,8 @@ export const auditLogs = pgTable("audit_logs", {
   index("audit_logs_workspace_created_idx").on(table.workspaceId, table.createdAt),
   index("audit_logs_workspace_resource_idx").on(table.workspaceId, table.resourceType, table.resourceId),
 ]);
-`),
-  check("source_objects_verified_requires_upload", sql`${table.status} <> 'verified' OR (${table.uploadedAt} IS NOT NULL AND ${table.verifiedAt} IS NOT NULL AND ${table.byteSize} IS NOT NULL AND ${table.checksumSha256} IS NOT NULL)`),
+")),
+  check("source_objects_verified_requires_upload", sql.raw("status <> 'verified' OR (uploaded_at IS NOT NULL AND verified_at IS NOT NULL AND byte_size IS NOT NULL AND checksum_sha256 IS NOT NULL)")),
   index("source_objects_workspace_status_idx").on(table.workspaceId, table.status),
 ]);
 export const memories = pgTable("memories", {
