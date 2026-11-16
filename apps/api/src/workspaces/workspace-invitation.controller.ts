@@ -110,7 +110,11 @@ export class WorkspaceInvitationController {
 
   @Get()
   @RequireWorkspaceRoles("owner", "admin")
-  async list(@Param("workspaceId") workspaceId: string) {
+  async list(
+    @Param("workspaceId") workspaceId: string,
+    @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
+  ) {
+    if (actor.workspaceType !== "shared") throw new BadRequestException("Les invitations sont réservées aux espaces partagés.");
     const result = await authPool.query<{
       id: string;
       email: string;
@@ -140,6 +144,7 @@ export class WorkspaceInvitationController {
     @Param("invitationId") invitationId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
+    if (actor.workspaceType !== "shared") throw new BadRequestException("Les invitations sont réservées aux espaces partagés.");
     const current = await authPool.query<{ role: string }>(
       `SELECT role FROM workspace_invitations
        WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL`,
