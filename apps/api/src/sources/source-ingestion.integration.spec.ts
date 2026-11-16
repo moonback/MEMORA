@@ -56,9 +56,9 @@ describe(
     const processorCalls = new Map<string, number>();
     let userId = "";
     let workspaceId = "";
-    let dispatcher: SourceIngestionDispatcherService;
-    let secondDispatcher: SourceIngestionDispatcherService;
-    let worker: SourceIngestionWorkerService;
+    let dispatcher: SourceIngestionDispatcherService | undefined;
+    let secondDispatcher: SourceIngestionDispatcherService | undefined;
+    let worker: SourceIngestionWorkerService | undefined;
     const ingestionIds: string[] = [];
 
     const processor: SourceIngestionProcessor = {
@@ -175,7 +175,7 @@ describe(
       permanentIds.add(permanent.ingestionId);
       transientIds.add(transient.ingestionId);
 
-      assert.equal(await dispatcher.dispatchBatch(), 3, "dispatcher must publish all three durable outbox events");
+      assert.equal(await dispatcher!.dispatchBatch(), 3, "dispatcher must publish all three durable outbox events");
 
       const successJob = await queue!.getJob(ingestionJobId(success.ingestionId));
       assert.ok(successJob, "published ingestion must exist in real Redis/BullMQ");
@@ -212,8 +212,8 @@ describe(
 
       const concurrent = await createReadySource("MEM-024 concurrent dispatcher claim");
       const claims = await Promise.all([
-        dispatcher.dispatchBatch(),
-        secondDispatcher.dispatchBatch(),
+        dispatcher!.dispatchBatch(),
+        secondDispatcher!.dispatchBatch(),
       ]);
       assert.equal(claims[0]! + claims[1]!, 1, "SKIP LOCKED must let only one dispatcher publish the same outbox row");
       await waitFor(
@@ -242,7 +242,7 @@ describe(
         "UPDATE public.source_ingestion_outbox SET published_at = now() WHERE ingestion_id = ANY($1::uuid[])",
         [[expired.ingestionId, exhausted.ingestionId]],
       );
-      assert.equal(await worker.recoverExpiredLeases(), 1, "worker must requeue the expired lease but not count exhausted rows");
+      assert.equal(await worker!.recoverExpiredLeases(), 1, "worker must requeue the expired lease but not count exhausted rows");
       const recovered = await readIngestion(expired.ingestionId);
       assert.equal(recovered?.status, "queued");
       assert.equal(recovered?.last_error_code, "worker_lease_expired");
