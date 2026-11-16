@@ -298,7 +298,6 @@ export const auditLogs = pgTable("audit_logs", {
   check("source_objects_verified_requires_upload", sql`${table.status} <> 'verified' OR (${table.uploadedAt} IS NOT NULL AND ${table.verifiedAt} IS NOT NULL AND ${table.byteSize} IS NOT NULL AND ${table.checksumSha256} IS NOT NULL)`),
   index("source_objects_workspace_status_idx").on(table.workspaceId, table.status),
 ]);
-
 export const memories = pgTable("memories", {
   id: uuid("id").defaultRandom().primaryKey(),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
