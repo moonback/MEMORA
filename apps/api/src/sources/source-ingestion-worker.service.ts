@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nest
 import { Queue, Worker } from "bullmq";
 import type { Job } from "bullmq";
 import { randomUUID } from "node:crypto";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { assertSafeJobData, redisConnectionOptions, SOURCE_INGESTION_QUEUE, type SourceIngestionJobData } from "./source-ingestion-queue.js";
 import { SOURCE_INGESTION_PROCESSOR, type SourceIngestionProcessor, PermanentSourceIngestionError } from "./source-ingestion-processor.js";
 
@@ -101,7 +101,7 @@ export class SourceIngestionWorkerService implements OnModuleInit, OnModuleDestr
       const exhausted = current.attempts >= current.max_attempts;
       const code = permanent && error instanceof PermanentSourceIngestionError ? error.code
         : error instanceof Error && error.message === "ingestion_lease_lost" ? "lease_lost"
-        : "processor_transient_failure";
+          : "processor_transient_failure";
       await this.pool.query(
         `UPDATE public.source_ingestions
          SET status = $5, completed_at = CASE WHEN $5 = 'failed' THEN now() ELSE NULL END,
@@ -120,38 +120,54 @@ export class SourceIngestionWorkerService implements OnModuleInit, OnModuleDestr
   async recoverExpiredLeases(): Promise<number> {
     if (this.recovering) return 0;
     this.recovering = true;
-    const client = await this.pool.connect();
+    let client: PoolClient | undefined;
     try {
-      await client.query("BEGIN");
-      const recovered = await client.query<{ id: string }>(
-        `WITH expired AS (
-           SELECT id FROM public.source_ingestions
-           WHERE status = 'processing' AND lease_until <= now()
-           ORDER BY lease_until LIMIT 25 FOR UPDATE SKIP LOCKED
-         ), reset AS (
-           UPDATE public.source_ingestions i
-           SET status = CASE WHEN i.attempts >= i.max_attempts THEN 'failed' ELSE 'queued' END,
-               completed_at = CASE WHEN i.attempts >= i.max_attempts THEN now() ELSE NULL END,
-               available_at = now(), lease_token = NULL, lease_until = NULL,
-               last_error_code = 'worker_lease_expired', updated_at = now()
-           FROM expired e WHERE i.id = e.id
-           RETURNING i.id, i.status
-         )
-         UPDATE public.source_ingestion_outbox o
-         SET published_at = NULL, available_at = now(), lease_token = NULL, lease_until = NULL,
-             last_error_code = NULL
-         FROM reset r
-         WHERE r.status = 'queued' AND o.ingestion_id = r.id
-         RETURNING o.id`,
-      );
-      await client.query("COMMIT");
-      return recovered.rowCount ?? 0;
-    } catch {
-      await client.query("ROLLBACK");
-      this.logger.warn("Ingestion lease recovery cycle failed.");
-      return 0;
+      try {
+        client = await this.pool.connect();
+        await client.query("BEGIN");
+        const recovered = await client.query<{ id: string }>(
+          `WITH expired AS (
+             SELECT id FROM public.source_ingestions
+             WHERE status = 'processing' AND lease_until <= now()
+             ORDER BY lease_until LIMIT 25 FOR UPDATE SKIP LOCKED
+           ), reset AS (
+             UPDATE public.source_ingestions i
+             SET status = CASE WHEN i.attempts >= i.max_attempts THEN 'failed' ELSE 'queued' END,
+                 completed_at = CASE WHEN i.attempts >= i.max_attempts THEN now() ELSE NULL END,
+                 available_at = now(), lease_token = NULL, lease_until = NULL,
+                 last_error_code = 'worker_lease_expired', updated_at = now()
+             FROM expired e WHERE i.id = e.id
+             RETURNING i.id, i.status
+           )
+           UPDATE public.source_ingestion_outbox o
+           SET published_at = NULL, available_at = now(), lease_token = NULL, lease_until = NULL,
+               last_error_code = NULL
+           FROM reset r
+           WHERE r.status = 'queued' AND o.ingestion_id = r.id
+           RETURNING o.id`,
+        );
+        await client.query("COMMIT");
+        return recovered.rowCount ?? 0;
+      } catch {
+        if (client) {
+          try {
+            await client.query("ROLLBACK");
+          } catch {
+            this.logger.warn("Ingestion lease recovery rollback failed.");
+          }
+        }
+        this.logger.warn("Ingestion lease recovery cycle failed.");
+        return 0;
+      } finally {
+        if (client) {
+          try {
+            client.release();
+          } catch {
+            this.logger.warn("Ingestion lease recovery release failed.");
+          }
+        }
+      }
     } finally {
-      client.release();
       this.recovering = false;
     }
   }
