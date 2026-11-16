@@ -75,7 +75,7 @@ BEGIN
 END $$;
 
 CREATE OR REPLACE FUNCTION public.memora_enqueue_source_ingestion()
-RETURNS trigger LANGUAGE plpgsql AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $
 DECLARE
   new_ingestion_id uuid;
 BEGIN
@@ -99,7 +99,7 @@ WHEN (OLD.status IS DISTINCT FROM NEW.status AND NEW.status = 'ready')
 EXECUTE FUNCTION public.memora_enqueue_source_ingestion();
 
 CREATE OR REPLACE FUNCTION public.memora_mark_source_ready_after_object_verification()
-RETURNS trigger LANGUAGE plpgsql AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $
 BEGIN
   IF OLD.status IS DISTINCT FROM NEW.status AND NEW.status = 'verified' THEN
     UPDATE public.sources
