@@ -1,6 +1,35 @@
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "pg";
+
+if (!process.env.DATABASE_URL && typeof process.loadEnvFile === "function") {
+  const currentDir =
+    typeof __dirname !== "undefined"
+      ? __dirname
+      : dirname(fileURLToPath(import.meta.url));
+
+  const envCandidates = [
+    resolve(process.cwd(), ".env"),
+    resolve(process.cwd(), "../../.env"),
+    resolve(currentDir, "../../../.env"),
+    resolve(currentDir, "../../.env"),
+  ];
+
+  for (const candidate of envCandidates) {
+    if (existsSync(candidate)) {
+      try {
+        process.loadEnvFile(candidate);
+        if (process.env.DATABASE_URL) {
+          break;
+        }
+      } catch {
+        // Continue searching candidates
+      }
+    }
+  }
+}
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -8,7 +37,14 @@ if (!connectionString) {
 }
 
 const client = new Client({ connectionString });
-const migrationsDirectory = resolve(process.cwd(), "migrations");
+const currentDir =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : dirname(fileURLToPath(import.meta.url));
+
+const migrationsDirectory = existsSync(resolve(currentDir, "../migrations"))
+  ? resolve(currentDir, "../migrations")
+  : resolve(process.cwd(), "migrations");
 
 async function migrate() {
   await client.connect();
