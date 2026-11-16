@@ -1,42 +1,31 @@
 # Durable source ingestion orchestration (MEM-024)
 
-## Current implementation
+## Architecture
 
-Migration `0011_source_ingestion_outbox.sql` introduces two workspace-aware records:
+The source-ready transition and ingestion outbox row are committed atomically by migration 0011. The dispatcher reads the outbox with the system database connection, claims rows using `FOR UPDATE SKIP LOCKED` and a lease token, and publishes only `ingestionId`, `sourceId` and `workspaceId` to BullMQ.
 
-- `source_ingestions`: one stable ingestion record per source/version, with queued/processing/succeeded/failed states, attempt budget, availability time, lease token/deadline, heartbeat and normalized error code.
-- `source_ingestion_outbox`: transactional event record with a unique ingestion/event key. Its payload is constrained to an empty JSON object; source content, signed URLs, credentials and private metadata are not stored in the event.
+The dispatcher marks `published_at` only after `Queue.add` resolves. If Redis is unavailable, it clears its lease, stores the fixed error code `queue_publish_failed` and schedules a bounded retry. If the process crashes after Redis accepted the job but before PostgreSQL records publication, the expired outbox lease is reclaimed and the same deterministic job ID is published again. The worker's database lease and terminal-state checks make duplicate delivery harmless.
 
-Database triggers enqueue the event in the same PostgreSQL transaction that makes a source ready. Manual capture uses the existing pending-to-ready transition. A verified object automatically transitions its source from pending to ready, which then creates the ingestion and outbox rows. A rolled-back source transition therefore also rolls back its ingestion event.
+The worker claims an ingestion only when the identifiers match the same workspace and the source is still `ready`. It uses a lease token for heartbeat and every state transition. Processing runs outside database transactions. Expired worker leases reopen the associated outbox event so another dispatcher cycle can recover it. Error details and private source content are never written to logs or queue payloads.
 
-The application role can read only ingestion state through workspace RLS. The outbox is reserved for the trusted system role and is not readable by the application role. Use `DATABASE_SYSTEM_URL` (or the existing `DATABASE_URL` migration/admin connection) for future cross-workspace dispatch and worker processes; never use `DATABASE_APP_URL` for a global worker.
+## Processor boundary
 
-The source list and detail API responses expose the latest ingestion state, attempts, maximum attempts, update timestamp and allow-listed error code.
+`SourceIngestionProcessor` is the extension point for future extraction work. The default `UnconfiguredSourceIngestionProcessor` deliberately raises the permanent error `processor_unavailable`; the worker records `failed`. It never marks a source `succeeded` merely because a job was delivered. Register a real processor only when it performs a real, tenant-revalidated operation. Parsing, OCR, antivirus, embeddings and memory generation remain out of scope.
 
-## State contract
+## Configuration
 
-| State | Meaning |
-|---|---|
-| queued | Source is ready and the durable ingestion request exists |
-| processing | A worker has acquired a time-bounded lease |
-| succeeded | The registered ingestion processor completed |
-| failed | The retry budget was exhausted or the processor classified the failure as permanent |
+- `DATABASE_SYSTEM_URL`: privileged service connection for cross-workspace outbox/worker operations. Falls back to `DATABASE_URL` for local development only. Never use `DATABASE_APP_URL`.
+- `REDIS_URL`: Redis connection string.
+- `INGESTION_OUTBOX_POLL_MS`: dispatcher polling interval (default 2000; 250–60000).
+- `INGESTION_OUTBOX_LEASE_SECONDS`: outbox lease (default 60; 10–900).
+- `INGESTION_WORKER_LEASE_SECONDS`: worker lease (default 120; 15–1800).
+- `INGESTION_WORKER_HEARTBEAT_MS`: heartbeat interval (default 30000).
+- `INGESTION_RECOVERY_POLL_MS`: expired-lease recovery interval (default 15000).
+- `INGESTION_WORKER_CONCURRENCY`: worker concurrency (default 5; 1–20).
+- `INGESTION_MAX_ATTEMPTS`: BullMQ attempt budget (default 5; 1–10).
 
-The database schema reserves lease and retry fields for the dispatcher/worker implementation. A queued record is not evidence that parsing, OCR, extraction, embeddings or indexing have run.
-
-## Operational boundary
-
-This milestone establishes atomic enqueueing, idempotency, tenant-visible state and a restricted outbox. The Redis/BullMQ dispatcher, lease-recovery worker, heartbeat loop, bounded retry scheduler and dead-letter handling remain the next implementation slice before this can be called a production-ready ingestion executor. Do not mark a source processed merely because its outbox event exists.
+Run PostgreSQL and Redis with `docker compose up -d`, then start the API. The dispatcher and worker are hosted by the NestJS application and shut down their timers, BullMQ connections and PostgreSQL pools on module teardown.
 
 ## Validation
 
-After pulling the feature branch and applying migrations, run:
-
-```powershell
-pnpm db:migrate
-pnpm typecheck
-pnpm test
-pnpm build
-```
-
-The database integration tests require both `DATABASE_URL` and `DATABASE_APP_URL` in the same PowerShell process. The new migration must be applied before the MEM-024 tests can pass.
+Run `pnpm typecheck`, `pnpm test` and `pnpm build`. Database integration tests still require the configured PostgreSQL URLs. Redis-dependent integration tests must run against the local Redis service before production readiness is claimed.

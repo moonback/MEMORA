@@ -14,6 +14,9 @@ import { SourceObjectController } from "./sources/source-object.controller.js";
 import { ManualCaptureController } from "./sources/manual-capture.controller.js";
 import { S3ObjectStorageService } from "./sources/object-storage.service.js";
 import { ObjectUploadCleanupService } from "./sources/object-upload-cleanup.service.js";
+import { SourceIngestionDispatcherService } from "./sources/source-ingestion-dispatcher.service.js";
+import { SourceIngestionWorkerService } from "./sources/source-ingestion-worker.service.js";
+import { SOURCE_INGESTION_PROCESSOR, UnconfiguredSourceIngestionProcessor } from "./sources/source-ingestion-processor.js";
 
 @Module({
   imports: [],
@@ -23,6 +26,9 @@ import { ObjectUploadCleanupService } from "./sources/object-upload-cleanup.serv
     WorkspaceMembershipGuard,
     S3ObjectStorageService,
     ObjectUploadCleanupService,
+    SourceIngestionDispatcherService,
+    SourceIngestionWorkerService,
+    { provide: SOURCE_INGESTION_PROCESSOR, useClass: UnconfiguredSourceIngestionProcessor },
   ],
 })
 export class AppModule {}

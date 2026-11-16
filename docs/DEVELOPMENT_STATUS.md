@@ -42,7 +42,7 @@ Updated: 2026-11-16
 - Verified binary objects automatically transition their source to ready; manual capture already uses the ready transition.
 - Source list/detail API responses expose the latest ingestion state and bounded attempt metadata.
 - Added PostgreSQL integration coverage for transaction rollback, idempotent enqueue, verified-object transition and tenant visibility.
-- Redis/BullMQ dispatch, worker execution, heartbeat/recovery and retry scheduling remain to be implemented; queued does not mean parsed or indexed.
+- Follow-up #45 / branch `feature/MEM-024b-bullmq-outbox-worker`: BullMQ dispatcher and worker skeleton added; default processor fails explicitly with `processor_unavailable` until a real extraction processor is registered. Local typecheck, PostgreSQL/Redis integration tests and build still required.
 - Local migration, typecheck, test and build validation pending.
 
 ## In progress: MEM-023 secure binary file import
