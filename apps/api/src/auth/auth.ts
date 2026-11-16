@@ -66,7 +66,9 @@ export const auth = betterAuth({
                RETURNING id`,
               [user.email, user.name, user.id],
             );
-            const userId = appUser.rows[0].id;
+            const appUserRow = appUser.rows[0];
+            if (!appUserRow) throw new Error("Could not provision the MEMORA user profile.");
+            const userId = appUserRow.id;
             const existingWorkspace = await client.query<{ id: string }>(
               "SELECT id FROM workspaces WHERE owner_user_id = $1 AND type = 'personal' LIMIT 1",
               [userId],
@@ -78,8 +80,11 @@ export const auth = betterAuth({
                  VALUES ($1, $2, 'personal', $3) RETURNING id`,
                 ["Espace personnel", `personal-${randomUUID().slice(0, 8)}`, userId],
               );
-              workspaceId = created.rows[0].id;
+              const createdWorkspace = created.rows[0];
+              if (!createdWorkspace) throw new Error("Could not create the personal workspace.");
+              workspaceId = createdWorkspace.id;
             }
+            if (!workspaceId) throw new Error("Personal workspace provisioning failed.");
             await client.query(
               `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
                VALUES ($1, $2, 'owner', 'active', now())
