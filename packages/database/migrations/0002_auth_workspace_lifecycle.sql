@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS public.account (
   "updatedAt" timestamp NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS account_user_id_idx ON public.account("userId");
+CREATE UNIQUE INDEX IF NOT EXISTS account_provider_account_unique
+  ON public.account("providerId", "accountId");
 
 CREATE TABLE IF NOT EXISTS public.verification (
   id text PRIMARY KEY,
