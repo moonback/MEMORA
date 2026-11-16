@@ -5,10 +5,12 @@ import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 import { queueAuthEmail } from "./mailer.js";
 import { ensurePersonalWorkspace } from "../workspaces/personal-workspace.service.js";
+import { setAuthUserContext } from "./db-context.js";
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", ".env") });
 
-const databaseUrl = process.env.DATABASE_URL ?? "postgresql://memora:change_me_locally@127.0.0.1:5432/memora";
+const databaseUrl = process.env.DATABASE_APP_URL;
+if (!databaseUrl) throw new Error("DATABASE_APP_URL must point to the non-owner, NOBYPASSRLS runtime database role.");
 const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 const secret = process.env.BETTER_AUTH_SECRET ?? "memora-local-development-secret-change-before-deploy";
 if (process.env.NODE_ENV === "production") {
@@ -63,6 +65,7 @@ export const auth = betterAuth({
           const client = await authPool.connect();
           try {
             await client.query("BEGIN");
+            await setAuthUserContext(client, user.id);
             const appUser = await client.query<{ id: string }>(
               `INSERT INTO users (email, display_name, auth_user_id)
                VALUES ($1, $2, $3)
