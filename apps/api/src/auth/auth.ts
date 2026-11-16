@@ -1,9 +1,14 @@
+import dotenv from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 import { randomUUID } from "node:crypto";
 import { sendAuthEmail } from "./mailer.js";
 
-const databaseUrl = process.env.DATABASE_URL ?? "postgresql://memora:memora@127.0.0.1:5432/memora";
+dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", ".env") });
+
+const databaseUrl = process.env.DATABASE_URL ?? "postgresql://memora:change_me_locally@127.0.0.1:5432/memora";
 const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 const secret = process.env.BETTER_AUTH_SECRET ??
   (process.env.NODE_ENV === "production"
