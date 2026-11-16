@@ -1,10 +1,13 @@
 import { Controller, Get, UnauthorizedException } from "@nestjs/common";
-import { CurrentSession } from "./current-session.decorator";
+import { CurrentSession } from "./current-session.decorator.js";
 
 @Controller("account")
 export class AccountController {
   @Get("me")
-  me(@CurrentSession() session: { user: { id: string; name: string; email: string; emailVerified: boolean }; session: { id: string; expiresAt: Date } } | undefined) {
+  me(@CurrentSession() session: {
+    user: { id: string; name: string; email: string; emailVerified: boolean };
+    session: { id: string; expiresAt: Date };
+  } | undefined) {
     if (!session) throw new UnauthorizedException();
     return {
       user: {
