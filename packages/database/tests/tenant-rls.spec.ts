@@ -38,7 +38,7 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
     workspaceA = wa.rows[0].id;
     workspaceB = wb.rows[0].id;
     await admin.query(
-      "INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at) VALUES ($1, $2, 'owner', 'active', now()), ($3, $4, 'owner', 'active', now())",
+      "INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at) VALUES ($1, $2, 'owner', 'active', now()), ($1, $4, 'member', 'active', now()), ($3, $4, 'owner', 'active', now())",
       [workspaceA, userA, workspaceB, userB],
     );
     await admin.query(
@@ -72,7 +72,10 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
       assert.deepEqual(sources.rows.map((row) => row.title), ["Private A"]);
 
       const members = await app.query("SELECT user_id FROM workspace_members");
-      assert.deepEqual(members.rows.map((row) => row.user_id), [userA]);
+      assert.deepEqual(new Set(members.rows.map((row) => row.user_id)), new Set([userA, userB]));
+
+      const visibleProfiles = await app.query("SELECT id FROM users WHERE id = ANY($1::uuid[])", [[userA, userB]]);
+      assert.deepEqual(new Set(visibleProfiles.rows.map((row) => row.id)), new Set([userA, userB]));
 
       await app.query("SAVEPOINT before_cross_tenant_source_insert");
       const crossTenantInsert = await app.query(
