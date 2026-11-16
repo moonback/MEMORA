@@ -54,9 +54,29 @@ const suite = describe("MEMORA initial database migration", { skip: !databaseUrl
       "users", "workspaces", "workspace_members", "workspace_invitations",
       "consents", "sources", "source_chunks", "memories", "memory_evidence",
       "entities", "memory_entities", "entity_relations", "audit_logs",
-      "_memora_migrations",
+      "_memora_migrations", "user", "session", "account", "verification",
     ]) {
       assert.ok(names.has(name), `Expected table ${name} to exist`);
+    }
+  });
+
+  it("enables and forces row-level security on tenant-owned tables", async () => {
+    const result = await client.query<{ relname: string; relrowsecurity: boolean; relforcerowsecurity: boolean }>(
+      `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity
+       FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public'
+         AND c.relname = ANY($1::text[])`,
+      [[
+        "users", "workspaces", "workspace_members", "workspace_invitations", "consents",
+        "sources", "source_chunks", "memories", "memory_evidence", "entities",
+        "memory_entities", "entity_relations", "audit_logs",
+      ]],
+    );
+    assert.equal(result.rows.length, 13);
+    for (const table of result.rows) {
+      assert.equal(table.relrowsecurity, true, `RLS should be enabled on ${table.relname}`);
+      assert.equal(table.relforcerowsecurity, true, `RLS should be forced on ${table.relname}`);
     }
   });
 
