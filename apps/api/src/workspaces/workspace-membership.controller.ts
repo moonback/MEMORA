@@ -126,19 +126,32 @@ export class WorkspaceMembershipController {
     @Param("memberUserId", new ParseUUIDPipe()) memberUserId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
-    const target = await authPool.query<{ role: WorkspaceRole }>(
-      "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
-      [workspaceId, memberUserId],
-    );
-    const targetRole = target.rows[0]?.role;
-    if (!targetRole) throw new NotFoundException("Membre introuvable.");
-    if (!canRemoveMember(actor.role, targetRole)) {
-      throw new ForbiddenException("Votre rôle ne permet pas de retirer ce membre.");
+    const client = await authPool.connect();
+    try {
+      await client.query("BEGIN");
+      const actorResult = await client.query<{ role: WorkspaceRole }>(
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND status = 'active' FOR UPDATE",
+        [workspaceId, actor.userId],
+      );
+      const currentActor = actorResult.rows[0];
+      if (!currentActor) throw new ForbiddenException("Votre accès à cet espace a changé.");
+      const target = await client.query<{ role: WorkspaceRole }> (
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 FOR UPDATE",
+        [workspaceId, memberUserId],
+      );
+      const targetRole = target.rows[0]?.role;
+      if (!targetRole) throw new NotFoundException("Membre introuvable.");
+      if (!canRemoveMember(currentActor.role, targetRole)) {
+        throw new ForbiddenException("Votre rôle ne permet pas de retirer ce membre.");
+      }
+      await client.query("DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2", [workspaceId, memberUserId]);
+      await client.query("COMMIT");
+      return { success: true };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
     }
-    await authPool.query(
-      "DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
-      [workspaceId, memberUserId],
-    );
-    return { success: true };
   }
 }
