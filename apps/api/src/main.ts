@@ -4,9 +4,11 @@ import { NestFactory } from "@nestjs/core";
 import express from "express";
 import { toNodeHandler } from "better-auth/node";
 import { AppModule } from "./app.module.js";
-import { auth } from "./auth/auth.js";
+import { auth, authPool } from "./auth/auth.js";
+import { assertRlsRuntimeRole } from "./auth/db-context.js";
 
 async function bootstrap() {
+  await assertRlsRuntimeRole(authPool);
   const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
