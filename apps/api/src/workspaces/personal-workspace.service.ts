@@ -36,6 +36,7 @@ export async function ensurePersonalWorkspace(
   }
   if (!workspace) throw new Error("Could not ensure the personal workspace.");
 
+  await client.query("SELECT set_config('app.workspace_id', $1, true)", [workspace.id]);
   await client.query(
     `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
      VALUES ($1, $2, 'owner', 'active', now())
