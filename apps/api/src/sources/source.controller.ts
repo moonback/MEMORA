@@ -46,10 +46,10 @@ export const listSourcesQuerySchema = z.object({
 const chunkSchema = z.object({
   ordinal: z.number().int().min(0).max(100000),
   content: z.string().trim().min(1).max(20000),
-  tokenCount: z.number().int().min(0).optional(),
-  pageNumber: z.number().int().min(1).optional(),
-  timeStartMs: z.number().int().min(0).optional(),
-  timeEndMs: z.number().int().min(0).optional(),
+  tokenCount: z.number().int().min(0).max(2147483647).optional(),
+  pageNumber: z.number().int().min(1).max(2147483647).optional(),
+  timeStartMs: z.number().int().min(0).max(2147483647).optional(),
+  timeEndMs: z.number().int().min(0).max(2147483647).optional(),
   metadata: z.record(z.unknown()).optional(),
 }).strict().refine(
   (chunk) => chunk.timeStartMs === undefined || chunk.timeEndMs === undefined || chunk.timeEndMs >= chunk.timeStartMs,
