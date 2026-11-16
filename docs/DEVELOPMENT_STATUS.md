@@ -11,30 +11,32 @@ Updated: 2026-11-16
 - Profile and account settings merged via PR #23.
 - Personal workspace lifecycle merged via PR #24.
 - Workspace membership and RBAC merged via PR #25.
-- PostgreSQL RLS and tenant isolation merged via PR #29 (squash commit `e516f0be439b00ffbd12e29a220a1579aa0cbf26`); duplicate PR #28 closed.
-- Current implementation branch: `feature/MEM-015-sources-and-chunks`.
+- PostgreSQL RLS and tenant isolation merged via PR #29 (squash commit `e516f0be439b00ffbd12e29a220a1579aa0cbf26`).
+- MEM-015 sources and chunks merged via PR #30 (squash commit `a15d951641f2447c1361843f70dd809d2eae90d0`).
+- Current implementation branch: `feature/MEM-016-memories-and-evidence`.
 
 ## Merged into main
 - pnpm workspace, strict TypeScript configuration, Next.js dashboard and NestJS API.
 - PostgreSQL/pgvector and Redis local infrastructure.
 - Core Drizzle schema and reviewed SQL migrations for users, workspaces, consent, sources, memories, evidence, entities, audit logs and Better Auth identities/sessions.
 - Transactional migration runner with advisory locking and applied-migration tracking.
-- Better Auth email/password authentication, mandatory email verification, password reset, database-backed sessions and session revocation.
+- Better Auth email/password authentication, email verification, password reset, database-backed sessions and session revocation.
 - API global session guard, public health routes and protected account endpoints.
-- Personal user/workspace/owner-membership provisioning, workspace metadata, unique personal workspace ownership and reversible archive/restore.
-- Shared workspace management, owner/admin/member/viewer RBAC, invitation tokens and verified-email acceptance.
-- PostgreSQL forced RLS policies, restricted runtime role guidance, transaction-local tenant context and cross-tenant negative tests.
+- Personal and shared workspace lifecycle, membership, invitations and owner/admin/member/viewer RBAC.
+- PostgreSQL forced RLS policies, transaction-local tenant context and cross-tenant negative tests.
+- Workspace-scoped source metadata API, source chunk replacement and provenance.
 
-## In progress: MEM-015 source and source chunk models
-- Workspace-scoped source metadata API: create, list, detail and archive.
-- SHA-256 checksum validation and source provenance metadata.
-- Atomic chunk-set replacement and ordered chunk retrieval.
-- RLS context and active workspace membership required for every source endpoint.
-- Database integration tests for tenant visibility and source/chunk workspace integrity.
-- Binary upload/object storage is deliberately deferred; no client-controlled storage key is accepted.
+## In progress: MEM-016 memories and evidence
+- Workspace-scoped memory create/list/detail/update/archive endpoints.
+- Confidence (0–100), event time and validity interval metadata.
+- Evidence links to source chunks with supports/contradicts/context classifications, optional quote and confidence.
+- Atomic memory creation with evidence validation and same-workspace enforcement.
+- Explicit supersession flow preserving the previous memory and linking the replacement.
+- API request contract tests and query-path database indexes.
+- Validation has not yet been run for this branch. PostgreSQL integration tests remain dependent on DATABASE_URL and DATABASE_APP_URL.
 
 ## Validation status
-Changes are authored through the GitHub integration. No local dependency installation, typecheck, build or PostgreSQL runtime execution has been performed in this session. GitHub Actions workflows for previous milestones, including MEM-014, ended in `startup_failure` before creating jobs; therefore no successful automated validation is available. Treat the current MEM-015 branch as unvalidated until the commands in the repository CI workflow complete successfully.
+MEM-015 local validation was reported by the user: `pnpm typecheck`, 37 tests and `pnpm build` passed. PostgreSQL integration suites were skipped because database environment variables were not configured. GitHub Actions startup failures have prevented reliable CI evidence in earlier milestones. MEM-016 has been authored through the GitHub integration and must be validated locally before merge.
 
 ## Not yet implemented
-Binary upload and EU object storage, ingestion workers (parsing/OCR/transcription), memory CRUD and evidence API, AI extraction and recall, entity resolution and knowledge graph API, audit event integration, external connectors, mobile and desktop clients, retention/deletion workflows, account deletion/email change and production hardening.
+Binary upload and EU object storage, ingestion workers (parsing/OCR/transcription), AI extraction and recall, entity resolution and knowledge graph API, audit event integration, external connectors, mobile and desktop clients, retention/deletion workflows, account deletion/email change and production hardening.
