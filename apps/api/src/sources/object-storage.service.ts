@@ -13,6 +13,7 @@ export interface ObjectStorageConfig {
   bucket: string; provider: string;
 }
 export interface UploadRequest { contentType: string; byteSize: number; checksumSha256: string; }
+export type ObjectPresigner = (client: S3Client, command: PutObjectCommand | GetObjectCommand, expiresIn: number) => Promise<string>;
 
 export function checksumHexToBase64(checksum: string): string {
   return Buffer.from(checksum, "hex").toString("base64");
@@ -46,8 +47,11 @@ export function validateUploadRequest(input: unknown): UploadRequest {
 export class S3ObjectStorageService {
   private client?: S3Client;
   private config?: ObjectStorageConfig;
+  private presigner: ObjectPresigner = (client, command, expiresIn) => getSignedUrl(client, command, { expiresIn });
 
   /** Explicit injection seam for deterministic unit tests; production uses environment configuration. */
+  configurePresignerForTests(presigner: ObjectPresigner): void { this.presigner = presigner; }
+
   configureClientForTests(client: S3Client, config: ObjectStorageConfig): void {
     this.client = client;
     this.config = config;
@@ -78,7 +82,7 @@ export class S3ObjectStorageService {
     const objectKey = `${input.workspaceId}/${input.sourceId}/${randomUUID()}`;
     const checksum = checksumHexToBase64(input.checksumSha256);
     const command = new PutObjectCommand({ Bucket: config.bucket, Key: objectKey, ContentType: input.contentType, ContentLength: input.byteSize, ChecksumSHA256: checksum });
-    const url = await getSignedUrl(client, command, { expiresIn: PRESIGNED_URL_TTL_SECONDS });
+    const url = await this.presigner(client, command, PRESIGNED_URL_TTL_SECONDS);
     return { storageProvider: config.provider, bucketName: config.bucket, objectKey, url, expiresIn: PRESIGNED_URL_TTL_SECONDS,
       requiredHeaders: { "content-type": input.contentType, "x-amz-checksum-sha256": checksum } };
   }
@@ -97,7 +101,7 @@ export class S3ObjectStorageService {
   async createDownloadUrl(input: { bucketName: string; objectKey: string; contentType: string }) {
     const { client } = this.getConfiguration();
     const command = new GetObjectCommand({ Bucket: input.bucketName, Key: input.objectKey, ResponseContentType: input.contentType });
-    return { url: await getSignedUrl(client, command, { expiresIn: PRESIGNED_URL_TTL_SECONDS }), expiresIn: PRESIGNED_URL_TTL_SECONDS };
+    return { url: await this.presigner(client, command, PRESIGNED_URL_TTL_SECONDS), expiresIn: PRESIGNED_URL_TTL_SECONDS };
   }
 
   async deleteObject(input: { bucketName: string; objectKey: string }): Promise<void> {
