@@ -10,7 +10,7 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { z } from "zod";
 import { authPool } from "../auth/auth.js";
-import { withWorkspaceContext } from "../database/tenant-context.js";
+import { withWorkspaceContext, type TenantMembership } from "../database/tenant-context.js";
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export interface WorkspaceMembershipContext {
@@ -34,7 +34,7 @@ export class WorkspaceMembershipGuard implements CanActivate {
     if (!session || typeof workspaceId !== "string" || !workspaceId) throw new ForbiddenException("Contexte de session ou d’espace manquant.");
     if (!z.string().uuid().safeParse(workspaceId).success) throw new BadRequestException("Identifiant d’espace invalide.");
 
-    const membership = await withWorkspaceContext(
+    const membership = await withWorkspaceContext<TenantMembership>(
       authPool,
       session.user.id,
       workspaceId,
