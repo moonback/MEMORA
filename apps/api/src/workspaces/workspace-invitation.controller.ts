@@ -12,7 +12,7 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { randomBytes, createHash } from "node:crypto";
+import { createInvitationToken, hashInvitationToken } from "./invitation-token.js";
 import { z } from "zod";
 import { authPool } from "../auth/auth.js";
 import { queueAuthEmail } from "../auth/mailer.js";
@@ -67,8 +67,7 @@ export class WorkspaceInvitationController {
     );
     if (existingMember.rows[0]) throw new ConflictException("Cette personne est déjà membre de l’espace.");
 
-    const token = randomBytes(32).toString("base64url");
-    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const { token, tokenHash } = createInvitationToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const invitation = await authPool.query<{
       id: string;
@@ -177,7 +176,7 @@ export class InvitationAcceptanceController {
     const parsed = z.object({ token: z.string().min(32).max(128) }).strict().safeParse(body);
     if (!parsed.success) throw new BadRequestException("Jeton d'invitation invalide.");
 
-    const tokenHash = createHash("sha256").update(parsed.data.token).digest("hex");
+    const tokenHash = hashInvitationToken(parsed.data.token);
     const client = await authPool.connect();
     try {
       await client.query("BEGIN");
