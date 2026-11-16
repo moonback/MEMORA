@@ -50,9 +50,13 @@ export const workspaces = pgTable("workspaces", {
   slug: varchar("slug", { length: 140 }).notNull().unique(),
   type: workspaceTypeEnum("type").notNull().default("personal"),
   ownerUserId: uuid("owner_user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+  description: varchar("description", { length: 500 }),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   ...timestamps,
 }, (table) => [
   unique("workspaces_id_owner_unique").on(table.id, table.ownerUserId),
+  uniqueIndex("workspaces_one_personal_per_owner_unique").on(table.ownerUserId).where(sql`${table.type} = 'personal'`),
   index("workspaces_owner_idx").on(table.ownerUserId),
 ]);
 
