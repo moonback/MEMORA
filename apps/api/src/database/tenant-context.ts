@@ -3,8 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import type { PoolClient } from "pg";
-import { authPool } from "../auth/auth.js";
+import type { Pool, PoolClient } from "pg";
 
 export interface TenantUser {
   id: string;
@@ -74,10 +73,11 @@ export async function beginWorkspaceContext(
 }
 
 export async function withUserContext<T>(
+  pool: Pool,
   authUserId: string,
   operation: (client: PoolClient, user: TenantUser) => Promise<T>,
 ): Promise<T> {
-  const client = await authPool.connect();
+  const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const user = await beginUserContext(client, authUserId);
@@ -93,6 +93,7 @@ export async function withUserContext<T>(
 }
 
 export async function withWorkspaceContext<T>(
+  pool: Pool,
   authUserId: string,
   workspaceId: string,
   operation: (client: PoolClient, context: { user: TenantUser; membership: TenantMembership }) => Promise<T>,
