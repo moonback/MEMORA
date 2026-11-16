@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 import { randomUUID } from "node:crypto";
-import { sendAuthEmail } from "./mailer";
+import { sendAuthEmail } from "./mailer.js";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgresql://memora:memora@127.0.0.1:5432/memora";
 const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
