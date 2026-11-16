@@ -14,8 +14,8 @@
 - [x] MEM-009 Database schema and migrations
 - [x] MEM-010 Authentication (merged; automated validation unavailable)
 - [x] MEM-011 User profile and account settings (merged; automated validation unavailable)
-- [~] MEM-012 Personal workspace lifecycle (implementation authored; validation pending)
-- [ ] MEM-013 Workspace membership and RBAC
+- [x] MEM-012 Personal workspace lifecycle (merged; automated validation unavailable)
+- [~] MEM-013 Workspace membership and RBAC (implementation authored; validation pending)
 - [ ] MEM-014 PostgreSQL RLS and tenant isolation
 - [ ] MEM-015 Source and source chunk models
 - [ ] MEM-016 Memory model and evidence provenance

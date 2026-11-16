@@ -4,10 +4,16 @@ import { AccountController } from "./auth/account.controller.js";
 import { AuthGuard } from "./auth/auth.guard.js";
 import { HealthController } from "./health/health.controller.js";
 import { WorkspaceController } from "./workspaces/workspace.controller.js";
+import { WorkspaceMembershipController } from "./workspaces/workspace-membership.controller.js";
+import { WorkspaceInvitationController, InvitationAcceptanceController } from "./workspaces/workspace-invitation.controller.js";
+import { WorkspaceMembershipGuard } from "./workspaces/workspace-membership.guard.js";
 
 @Module({
   imports: [],
-  controllers: [HealthController, AccountController, WorkspaceController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }],
+  controllers: [HealthController, AccountController, WorkspaceController, WorkspaceMembershipController, WorkspaceInvitationController, InvitationAcceptanceController],
+  providers: [
+    { provide: APP_GUARD, useClass: AuthGuard },
+    WorkspaceMembershipGuard,
+  ],
 })
 export class AppModule {}
