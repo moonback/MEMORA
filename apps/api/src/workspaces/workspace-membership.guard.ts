@@ -14,6 +14,7 @@ export interface WorkspaceMembershipContext {
   workspaceId: string;
   userId: string;
   role: WorkspaceRole;
+  workspaceType: "personal" | "shared";
 }
 
 export const WORKSPACE_ROLES_KEY = "memora:workspace-roles";
@@ -38,8 +39,9 @@ export class WorkspaceMembershipGuard implements CanActivate {
       user_id: string;
       role: WorkspaceRole;
       archived_at: Date | null;
+      workspace_type: "personal" | "shared";
     }>(
-      `SELECT wm.user_id, wm.role, w.archived_at
+      `SELECT wm.user_id, wm.role, w.archived_at, w.type AS workspace_type
        FROM workspace_members wm
        JOIN workspaces w ON w.id = wm.workspace_id
        JOIN users u ON u.id = wm.user_id
@@ -65,6 +67,7 @@ export class WorkspaceMembershipGuard implements CanActivate {
       workspaceId,
       userId: membership.user_id,
       role: membership.role,
+      workspaceType: membership.workspace_type,
     };
     return true;
   }
