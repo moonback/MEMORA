@@ -14,7 +14,8 @@ Updated: 2026-11-16
 - PostgreSQL RLS and tenant isolation merged via PR #29 (squash commit `e516f0be439b00ffbd12e29a220a1579aa0cbf26`).
 - MEM-015 sources and chunks merged via PR #30 (squash commit `a15d951641f2447c1361843f70dd809d2eae90d0`).
 - MEM-016 memories and evidence merged via PR #31 (squash commit `f84d688ec176cde2533cb0aaca38a2a92696addb`).
-- Current implementation branch: `feature/MEM-017-entities-knowledge-relations`.
+- MEM-017 entities and knowledge relations merged via PR #32 (squash commit `16e711a419efb73c83923c583aae94af3ac8deab`).
+- Current implementation branch: `feature/MEM-018-audit-log-security-tests`.
 
 ## Merged into main
 - pnpm workspace, strict TypeScript configuration, Next.js dashboard and NestJS API.
@@ -26,24 +27,20 @@ Updated: 2026-11-16
 - Personal and shared workspace lifecycle, membership, invitations and owner/admin/member/viewer RBAC.
 - PostgreSQL forced RLS policies, transaction-local tenant context and cross-tenant negative tests.
 - Workspace-scoped source metadata API, source chunk replacement and provenance.
+- Workspace-scoped memory lifecycle, evidence provenance and supersession.
+- Workspace-scoped entities, memory links, typed temporal relations and relation evidence.
 
-## Merged: MEM-016 memories and evidence
-- Workspace-scoped memory create/list/detail/update/archive endpoints.
-- Confidence (0–100), event time and validity interval metadata.
-- Evidence links to source chunks with supports/contradicts/context classifications, optional quote and confidence.
-- Atomic memory creation with evidence validation and same-workspace enforcement.
-- Explicit supersession flow preserving the previous memory and linking the replacement.
-- API request contract tests and query-path database indexes.
-- User-reported local validation: PostgreSQL tests 18/18, API tests 43/43, typecheck and web/API builds passed. GitHub Actions remained unavailable (`startup_failure`).
+## User-reported validation
+- MEM-016: PostgreSQL tests 18/18, API tests 43/43, typecheck and builds passed locally.
+- MEM-017: PostgreSQL tests 21/21, API tests 48/48, typecheck and builds passed locally after a TypeScript fix. GitHub Actions reported `startup_failure`; automated CI evidence remains unavailable.
 
-## In progress: MEM-017 entities and knowledge relations
-- Workspace-scoped entity CRUD and search.
-- Memory-entity links with mention provenance.
-- Typed temporal relations with confidence and source-chunk evidence.
-- Workspace-qualified foreign keys and RLS for every relation/evidence record.
-
-## Validation status
-MEM-016 local validation was reported by the user: PostgreSQL tests 18/18, API tests 43/43, typecheck and web/API builds passed. GitHub Actions for PR #31 returned `startup_failure`; no successful automated CI evidence is available. MEM-017 is under implementation.
+## In progress: MEM-018 audit log and security integration tests
+- Migration adds automatic transactional audit events for INSERT/UPDATE on sources, memories, entities and entity relations.
+- Audit metadata stores only table/operation and safe changed-column names, never private field values.
+- Forced workspace RLS and actor checks apply to audit inserts and reads.
+- Direct audit UPDATE/DELETE is rejected by PostgreSQL; referential cascades remain available for workspace/account erasure.
+- Integration tests cover workspace isolation, actor spoofing, metadata minimization and append-only behavior.
+- Local validation is pending.
 
 ## Not yet implemented
-Binary upload and EU object storage, ingestion workers (parsing/OCR/transcription), AI extraction and recall, entity resolution and knowledge graph API, audit event integration, external connectors, mobile and desktop clients, retention/deletion workflows, account deletion/email change and production hardening.
+Binary upload and EU object storage, ingestion workers (parsing/OCR/transcription), AI extraction and recall, entity resolution and graph traversal/ranking, external connectors, mobile and desktop clients, retention/export workflows, account deletion/email change UX and production hardening.
