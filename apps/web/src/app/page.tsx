@@ -1,3 +1,6 @@
+import { AuthGate } from "../components/auth-gate";
+import { LogoutButton } from "../components/logout-button";
+
 import { ArrowUpRight, Bell, Bookmark, Brain, CalendarDays, ChevronDown, CircleHelp, FileText, Folder, LayoutDashboard, Plus, Search, Settings2, ShieldCheck, Sparkles, UploadCloud, Users, Workflow } from "lucide-react";
 
 const sections = [
@@ -12,7 +15,7 @@ const suggestions = [
 ];
 
 export default function HomePage() {
-  return <main className="shell">
+  return <AuthGate><main className="shell">
     <aside className="sidebar">
       <a className="brand" href="#"><span className="brand-mark"><Brain size={19}/></span><span>MEMORA</span></a>
       <div className="workspace-switch"><span className="workspace-avatar">M</span><span><b>Mon espace</b><small>Espace personnel</small></span><ChevronDown size={15}/></div>
@@ -27,7 +30,7 @@ export default function HomePage() {
       </div>
     </aside>
     <section className="main-panel">
-      <header className="topbar"><div className="breadcrumb">Mon espace <span>/</span> <b>Vue d'ensemble</b></div><div className="top-actions"><button className="icon-button" aria-label="Notifications"><Bell size={18}/></button><span className="avatar-small">M</span></div></header>
+      <header className="topbar"><div className="breadcrumb">Mon espace <span>/</span> <b>Vue d'ensemble</b></div><div className="top-actions"><button className="icon-button" aria-label="Notifications"><Bell size={18}/></button><span className="avatar-small">M</span><LogoutButton /></div></header>
       <div className="content">
         <div className="welcome-row"><div><div className="eyebrow">VOTRE ESPACE PERSONNEL</div><h1>Bonjour, bienvenue dans <span>votre mémoire.</span></h1><p>Un endroit privé pour retrouver ce qui compte, quand vous en avez besoin.</p></div><button className="primary-button"><Plus size={17}/> Ajouter une information</button></div>
         <div className="search-panel"><div className="search-icon"><Search size={20}/></div><div className="search-copy"><b>Que souhaitez-vous retrouver ?</b><span>Recherchez une personne, une idée, une décision ou un souvenir…</span></div><kbd>⌘ K</kbd></div>
@@ -46,5 +49,5 @@ export default function HomePage() {
         <footer className="footer-note"><ShieldCheck size={15}/> Vos informations restent privées. Rien n'est capturé sans votre autorisation.</footer>
       </div>
     </section>
-  </main>;
+  </main></AuthGate>;
 }

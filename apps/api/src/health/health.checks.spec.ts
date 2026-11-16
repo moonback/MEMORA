@@ -1,18 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getReadiness, probeTcp, type DependencyCheck } from "./health.checks";
+import { getReadiness, probeTcp, type DependencyCheck } from "./health.checks.js";
 
 describe("getReadiness", () => {
   it("reports ok only when both dependencies respond", async () => {
-    const probe = async (): Promise<DependencyCheck> => ({
-      status: "ok",
-      latencyMs: 2,
-    });
+    const probe = async (): Promise<DependencyCheck> => ({ status: "ok", latencyMs: 2 });
     const result = await getReadiness(
       { DATABASE_URL: "postgres://localhost/db", REDIS_URL: "redis://localhost" },
       probe,
     );
-
     assert.equal(result.status, "ok");
     assert.equal(result.dependencies.database.status, "ok");
     assert.equal(result.dependencies.redis.status, "ok");
@@ -28,7 +24,6 @@ describe("getReadiness", () => {
       { DATABASE_URL: "postgres://localhost/db", REDIS_URL: "redis://localhost" },
       probe,
     );
-
     assert.equal(result.status, "degraded");
     assert.equal(result.dependencies.redis.status, "unavailable");
   });

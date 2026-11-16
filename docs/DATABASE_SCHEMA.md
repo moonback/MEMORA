@@ -13,7 +13,7 @@
 
 | Domain | Tables | Purpose |
 |---|---|---|
-| Identity | users | User profile and stable identity |
+| Identity | users, user, session, account, verification | UUID-based MEMORA profile plus Better Auth credentials, sessions and verification tokens |
 | Workspace | workspaces, workspace_members, workspace_invitations | Personal/shared spaces, membership and invitations |
 | Privacy | consents | Purpose-specific, versioned consent history |
 | Capture | sources, source_chunks | Imported origin records and normalized text chunks |
@@ -36,9 +36,9 @@
 
 The reviewed SQL files in `packages/database/migrations` are the migration source of truth. They are applied in lexical order by `pnpm db:migrate` (or `pnpm --filter @memora/database db:migrate`). The runner records applied filenames in `public._memora_migrations`, applies each file in a transaction, and uses a PostgreSQL advisory lock to prevent concurrent migration runners.
 
-Add future migrations as the next zero-padded SQL filename (for example, `0002_identity_auth.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
+Add future migrations as the next zero-padded SQL filename (for example, `0003_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
 
-The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the relational model for typed application queries and Drizzle Studio. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
+The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the application-domain model for typed queries and Drizzle Studio. Better Auth's identity/session tables are maintained in reviewed SQL and accessed through its PostgreSQL adapter. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
 
 ## Local setup
 
@@ -49,4 +49,4 @@ The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the relati
 
 ## Not yet enabled
 
-RLS policies, per-request workspace context, automated cross-tenant negative tests, authentication/session tables, retention jobs, and vector embeddings/indexes are subsequent milestones. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
+RLS policies, per-request workspace context, automated cross-tenant negative tests, retention jobs, and vector embeddings/indexes are subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.

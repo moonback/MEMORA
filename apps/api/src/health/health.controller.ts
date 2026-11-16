@@ -1,8 +1,10 @@
 import { Controller, Get } from "@nestjs/common";
-import { getReadiness } from "./health.checks";
+import { Public } from "../auth/public.decorator.js";
+import { getReadiness } from "./health.checks.js";
 
 @Controller()
 export class HealthController {
+  @Public()
   @Get("health")
   health() {
     return {
@@ -12,6 +14,7 @@ export class HealthController {
     };
   }
 
+  @Public()
   @Get("health/ready")
   readiness() {
     return getReadiness();
