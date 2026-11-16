@@ -110,6 +110,19 @@ describe("MEM-024 transactional source ingestion outbox", { skip: !adminUrl || !
     );
     const sourceId = source.rows[0].id;
     await admin.query("UPDATE sources SET status = 'ready' WHERE id = $1", [sourceId]);
+
+    // Seed a second tenant so this test proves cross-workspace isolation rather
+    // than incorrectly assuming a workspace contains only this test's source.
+    const foreignWorkspace = await admin.query(
+      "INSERT INTO workspaces (name, slug, owner_user_id) VALUES ('MEM-024 foreign', $1, $2) RETURNING id",
+      [`mem024-foreign-${suffix}`, userId],
+    );
+    const foreignSource = await admin.query(
+      "INSERT INTO sources (workspace_id, created_by_user_id, type, status, title) VALUES ($1, $2, 'manual', 'pending', 'Foreign tenant state') RETURNING id",
+      [foreignWorkspace.rows[0].id, userId],
+    );
+    await admin.query("UPDATE sources SET status = 'ready' WHERE id = $1", [foreignSource.rows[0].id]);
+
     const app = new Client({ connectionString: appUrl });
     await app.connect();
     try {
@@ -118,10 +131,12 @@ describe("MEM-024 transactional source ingestion outbox", { skip: !adminUrl || !
       await app.query("SELECT set_config('app.user_id', $1, true)", [userId]);
       await app.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
       const visible = await app.query("SELECT source_id, status FROM source_ingestions");
-      assert.deepEqual(visible.rows, [{ source_id: sourceId, status: "queued" }]);
+      assert.ok(visible.rows.some((row) => row.source_id === sourceId && row.status === "queued"));
+      assert.ok(visible.rows.every((row) => row.source_id !== foreignSource.rows[0].id));
       await app.query("ROLLBACK");
     } finally {
       await app.end();
+      await admin.query("DELETE FROM workspaces WHERE id = $1", [foreignWorkspace.rows[0].id]);
     }
   });
 });
