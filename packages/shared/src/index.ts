@@ -1,5 +1,41 @@
 import { z } from "zod";
 
+export const entityTypeSchema = z.enum(["person","organization","place","project","product","topic","other"]);
+export type EntityType = z.infer<typeof entityTypeSchema>;
+export const entityRelationTypeSchema = z.enum(["related_to","works_with","member_of","located_in","part_of","owns","replaces","depends_on","custom"]);
+export const createEntityContractSchema = z.object({
+  type: entityTypeSchema,
+  canonicalName: z.string().trim().min(1).max(300),
+  description: z.string().trim().max(10000).nullable().optional(),
+  aliases: z.array(z.string().trim().min(1).max(300)).max(50).default([]),
+  attributes: z.record(z.unknown()).optional(),
+}).strict().refine(
+  (value) => new Set(value.aliases.map((alias) => alias.toLocaleLowerCase())).size === value.aliases.length,
+  "Les alias ne doivent pas être dupliqués.",
+);
+export type CreateEntityContract = z.infer<typeof createEntityContractSchema>;
+export const createEntityRelationContractSchema = z.object({
+  toEntityId: z.string().uuid(),
+  type: entityRelationTypeSchema,
+  label: z.string().trim().min(1).max(160).optional(),
+  properties: z.record(z.unknown()).optional(),
+  confidence: z.number().int().min(0).max(100).optional(),
+  validFrom: z.string().datetime().optional(),
+  validUntil: z.string().datetime().optional(),
+  evidence: z.array(z.object({
+    sourceChunkId: z.string().uuid(),
+    quote: z.string().trim().min(1).max(4000).optional(),
+    confidence: z.number().int().min(0).max(100).optional(),
+  }).strict()).max(30).default([]),
+}).strict().refine(
+  (value) => !value.validFrom || !value.validUntil || Date.parse(value.validUntil) >= Date.parse(value.validFrom),
+  "La fin de validité doit être postérieure au début.",
+).refine(
+  (value) => new Set(value.evidence.map((item) => item.sourceChunkId)).size === value.evidence.length,
+  "Les preuves ne doivent pas être dupliquées.",
+);
+export type CreateEntityRelationContract = z.infer<typeof createEntityRelationContractSchema>;
+
 export const memoryTypeSchema = z.enum(["fact","preference","event","decision","commitment","note","observation"]);
 export type MemoryType = z.infer<typeof memoryTypeSchema>;
 export const memoryStatusSchema = z.enum(["active","superseded","archived"]);

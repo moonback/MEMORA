@@ -13,7 +13,8 @@ Updated: 2026-11-16
 - Workspace membership and RBAC merged via PR #25.
 - PostgreSQL RLS and tenant isolation merged via PR #29 (squash commit `e516f0be439b00ffbd12e29a220a1579aa0cbf26`).
 - MEM-015 sources and chunks merged via PR #30 (squash commit `a15d951641f2447c1361843f70dd809d2eae90d0`).
-- Current implementation branch: `feature/MEM-016-memories-and-evidence`.
+- MEM-016 memories and evidence merged via PR #31 (squash commit `f84d688ec176cde2533cb0aaca38a2a92696addb`).
+- Current implementation branch: `feature/MEM-017-entities-knowledge-relations`.
 
 ## Merged into main
 - pnpm workspace, strict TypeScript configuration, Next.js dashboard and NestJS API.
@@ -26,17 +27,23 @@ Updated: 2026-11-16
 - PostgreSQL forced RLS policies, transaction-local tenant context and cross-tenant negative tests.
 - Workspace-scoped source metadata API, source chunk replacement and provenance.
 
-## In progress: MEM-016 memories and evidence
+## Merged: MEM-016 memories and evidence
 - Workspace-scoped memory create/list/detail/update/archive endpoints.
 - Confidence (0–100), event time and validity interval metadata.
 - Evidence links to source chunks with supports/contradicts/context classifications, optional quote and confidence.
 - Atomic memory creation with evidence validation and same-workspace enforcement.
 - Explicit supersession flow preserving the previous memory and linking the replacement.
 - API request contract tests and query-path database indexes.
-- Validation has not yet been run for this branch. PostgreSQL integration tests remain dependent on DATABASE_URL and DATABASE_APP_URL.
+- User-reported local validation: PostgreSQL tests 18/18, API tests 43/43, typecheck and web/API builds passed. GitHub Actions remained unavailable (`startup_failure`).
+
+## In progress: MEM-017 entities and knowledge relations
+- Workspace-scoped entity CRUD and search.
+- Memory-entity links with mention provenance.
+- Typed temporal relations with confidence and source-chunk evidence.
+- Workspace-qualified foreign keys and RLS for every relation/evidence record.
 
 ## Validation status
-MEM-015 local validation was reported by the user: `pnpm typecheck`, 37 tests and `pnpm build` passed. PostgreSQL integration suites were skipped because database environment variables were not configured. GitHub Actions startup failures have prevented reliable CI evidence in earlier milestones. MEM-016 has been authored through the GitHub integration and must be validated locally before merge.
+MEM-016 local validation was reported by the user: PostgreSQL tests 18/18, API tests 43/43, typecheck and web/API builds passed. GitHub Actions for PR #31 returned `startup_failure`; no successful automated CI evidence is available. MEM-017 is under implementation.
 
 ## Not yet implemented
 Binary upload and EU object storage, ingestion workers (parsing/OCR/transcription), AI extraction and recall, entity resolution and knowledge graph API, audit event integration, external connectors, mobile and desktop clients, retention/deletion workflows, account deletion/email change and production hardening.

@@ -18,6 +18,6 @@
 - [x] MEM-013 Workspace membership and RBAC (merged)
 - [x] MEM-014 PostgreSQL RLS and tenant isolation (merged)
 - [x] MEM-015 Source and source chunk models (workspace-scoped API, chunk replacement, checksum and provenance)
-- [~] MEM-016 Memory model and evidence provenance (CRUD, temporal metadata, confidence, source-chunk evidence, supersession and archive)
-- [ ] MEM-017 Entity and knowledge relations
+- [x] MEM-016 Memory model and evidence provenance (merged via PR #31; CRUD, temporal metadata, confidence, source-chunk evidence, supersession and archive)
+- [~] MEM-017 Entity and knowledge relations
 - [ ] MEM-018 Audit log and security integration tests

@@ -18,7 +18,7 @@
 | Privacy | consents | Purpose-specific, versioned consent history |
 | Capture | sources, source_chunks | Imported origin records and normalized text chunks |
 | Memory | memories, memory_evidence | Typed, temporal memories with provenance |
-| Knowledge graph | entities, memory_entities, entity_relations | Canonical entities and workspace-local relationships |
+| Knowledge graph | entities, memory_entities, entity_relations, entity_relation_evidence | Canonical entities, memory mentions, typed relations and source provenance |
 | Governance | audit_logs | Activity and security events |
 
 ## Important constraints

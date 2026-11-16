@@ -223,16 +223,35 @@ export const entityRelations = pgTable("entity_relations", {
   type: relationTypeEnum("type").notNull(),
   label: varchar("label", { length: 160 }),
   properties: jsonb("properties").$type<Record<string, unknown>>().notNull().default({}),
+  confidence: integer("confidence"),
   validFrom: timestamp("valid_from", { withTimezone: true }),
   validUntil: timestamp("valid_until", { withTimezone: true }),
   ...timestamps,
 }, (table) => [
+  unique("entity_relations_id_workspace_unique").on(table.id, table.workspaceId),
   foreignKey({ columns: [table.fromEntityId, table.workspaceId], foreignColumns: [entities.id, entities.workspaceId], name: "entity_relations_from_workspace_fk" }).onDelete("cascade"),
   foreignKey({ columns: [table.toEntityId, table.workspaceId], foreignColumns: [entities.id, entities.workspaceId], name: "entity_relations_to_workspace_fk" }).onDelete("cascade"),
   check("entity_relations_distinct_entities", sql`${table.fromEntityId} <> ${table.toEntityId}`),
+  check("entity_relations_confidence_range", sql`${table.confidence} IS NULL OR (${table.confidence} >= 0 AND ${table.confidence} <= 100)`),
   check("entity_relations_validity_range", sql`${table.validUntil} IS NULL OR ${table.validFrom} IS NULL OR ${table.validUntil} >= ${table.validFrom}`),
   index("entity_relations_workspace_from_idx").on(table.workspaceId, table.fromEntityId),
   index("entity_relations_workspace_to_idx").on(table.workspaceId, table.toEntityId),
+]);
+
+export const entityRelationEvidence = pgTable("entity_relation_evidence", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  relationId: uuid("relation_id").notNull(),
+  sourceChunkId: uuid("source_chunk_id").notNull(),
+  quote: text("quote"),
+  confidence: integer("confidence"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  foreignKey({ columns: [table.relationId, table.workspaceId], foreignColumns: [entityRelations.id, entityRelations.workspaceId], name: "entity_relation_evidence_relation_workspace_fk" }).onDelete("cascade"),
+  foreignKey({ columns: [table.sourceChunkId, table.workspaceId], foreignColumns: [sourceChunks.id, sourceChunks.workspaceId], name: "entity_relation_evidence_chunk_workspace_fk" }).onDelete("cascade"),
+  unique("entity_relation_evidence_relation_chunk_unique").on(table.relationId, table.sourceChunkId),
+  check("entity_relation_evidence_confidence_range", sql`${table.confidence} IS NULL OR (${table.confidence} >= 0 AND ${table.confidence} <= 100)`),
+  index("entity_relation_evidence_workspace_relation_idx").on(table.workspaceId, table.relationId),
 ]);
 
 export const auditLogs = pgTable("audit_logs", {
