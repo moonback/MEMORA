@@ -68,3 +68,8 @@ MEM-016 exposes workspace-scoped memory CRUD and lifecycle endpoints. Memories p
 ## Audit trail (MEM-018)
 
 The existing `audit_logs` table is now populated by PostgreSQL triggers for INSERT/UPDATE operations on sources, memories, entities and entity relations. Audit writes occur in the same transaction as the business mutation. Metadata is limited to structural information and safe changed-column names; private values are not copied. RLS scopes audit reads/inserts to the active workspace and validates the actor. Direct UPDATE/DELETE is rejected by a database trigger, while referential cascades remain available for workspace/account erasure. See `AUDIT_LOG.md`.
+
+
+## Durable source ingestion (MEM-024)
+
+Migration `0011_source_ingestion_outbox.sql` adds workspace-scoped `source_ingestions` state and a restricted `source_ingestion_outbox`. Database triggers create one stable ingestion event in the same transaction that transitions a source to `ready`; verified object metadata automatically transitions its source to ready. The outbox payload is constrained to `{}` so no source content, signed URL, credential or private metadata can enter the queue. The application role can read ingestion state only under workspace RLS; cross-tenant outbox dispatch is reserved for a trusted system role. See `INGESTION_ORCHESTRATION.md`. The Redis/BullMQ dispatcher and execution worker are not yet part of this migration slice.
