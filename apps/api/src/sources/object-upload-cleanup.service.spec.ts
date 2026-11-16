@@ -84,6 +84,8 @@ const suite = describe("MEM-021 PostgreSQL cleanup worker with mocked S3", { ski
     assert.equal(completed.rows[0].cleanup_attempts, 1);
     assert.equal(deleteCalls, 2);
     assert.equal(deletedKeys.length, 1);
+    assert.equal(await worker.runCleanupBatch(), 0, "a repeated cleanup cycle must be idempotent");
+    assert.equal(deleteCalls, 2);
 
     const protectedObject = await pool.query("SELECT status FROM source_objects WHERE id = $1", [verifiedId]);
     assert.equal(protectedObject.rows[0].status, "verified");

@@ -71,6 +71,19 @@ describe("MEM-021 S3 lifecycle adapter", () => {
     assert.ok(commands.some((command) => command instanceof DeleteObjectCommand));
   });
 
+  it("rejects mismatched size, content type and checksum metadata", async () => {
+    const service = new S3ObjectStorageService();
+    const client = new S3Client({ endpoint: config.endpoint, region: config.region, credentials: {
+      accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey,
+    } });
+    client.send = (async () => ({ ContentLength: 1023, ContentType: "text/plain", ChecksumSHA256: "wrong" })) as typeof client.send;
+    service.configureClientForTests(client, config);
+    await assert.rejects(service.verifyUploadedObject({
+      bucketName: config.bucket, objectKey: "private/key", expectedByteSize: 1024,
+      expectedContentType: "application/pdf", expectedChecksumSha256: "a".repeat(64),
+    }));
+  });
+
   it("does not swallow S3 provider errors at the adapter boundary", async () => {
     const service = new S3ObjectStorageService();
     const client = new S3Client({ endpoint: config.endpoint, region: config.region, credentials: {
