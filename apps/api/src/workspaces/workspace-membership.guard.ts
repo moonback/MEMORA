@@ -23,12 +23,6 @@ export interface WorkspaceMembershipContext {
 
 export const WORKSPACE_ROLES_KEY = "memora:workspace-roles";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    workspaceMembership?: WorkspaceMembershipContext;
-  }
-}
-
 @Injectable()
 export class WorkspaceMembershipGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -37,14 +31,14 @@ export class WorkspaceMembershipGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const session = request.authSession;
     const workspaceId = request.params.workspaceId;
-    if (!session || !workspaceId) throw new ForbiddenException("Contexte de session ou d’espace manquant.");
+    if (!session || typeof workspaceId !== "string" || !workspaceId) throw new ForbiddenException("Contexte de session ou d’espace manquant.");
     if (!z.string().uuid().safeParse(workspaceId).success) throw new BadRequestException("Identifiant d’espace invalide.");
 
     const membership = await withWorkspaceContext(
       authPool,
       session.user.id,
       workspaceId,
-      async (_client, context) => context.membership,
+      async (_client, tenantContext) => tenantContext.membership,
     );
 
     const allowedRoles = this.reflector.getAllAndOverride<WorkspaceRole[]>(WORKSPACE_ROLES_KEY, [
