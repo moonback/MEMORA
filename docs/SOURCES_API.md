@@ -15,6 +15,10 @@ Base path: `/api/workspaces/:workspaceId/sources`.
 
 Supported source types: document, email, audio, note, image, manual and web_clip. SHA-256 checksums must be 64 hexadecimal characters. Chunk ordinals are unique within a source; content is limited to 20,000 characters per chunk, and the replacement request is limited to 100 chunks.
 
+## Manual note capture
+
+- `POST /api/workspaces/:workspaceId/capture/notes`: atomically creates a `manual` source, ordinal-zero source chunk and `ready` status. Requires owner/admin/member. Body is strict: title (1–500 chars), content (1–20,000 chars), optional ISO datetime `capturedAt`. The transaction rolls back the source if its chunk cannot be persisted. See [MANUAL_CAPTURE.md](MANUAL_CAPTURE.md).
+
 ## Storage boundary
 
 The source metadata API still does not accept binary bytes or expose presigned URLs. MEM-019 adds a separate `source_objects` record for private object coordinates and verified upload metadata. Object keys are generated server-side and are never accepted from client payloads. A concrete storage adapter, signed upload flow and malware scanning are not yet enabled; see `OBJECT_STORAGE.md`.
