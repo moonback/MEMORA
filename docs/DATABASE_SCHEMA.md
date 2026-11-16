@@ -38,7 +38,7 @@
 
 The reviewed SQL files in `packages/database/migrations` are the migration source of truth. They are applied in lexical order by `pnpm db:migrate` (or `pnpm --filter @memora/database db:migrate`). The runner records applied filenames in `public._memora_migrations`, applies each file in a transaction, and uses a PostgreSQL advisory lock to prevent concurrent migration runners.
 
-Add future migrations as the next zero-padded SQL filename (for example, `0003_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
+Add future migrations as the next zero-padded SQL filename. Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
 
 The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the application-domain model for typed queries and Drizzle Studio. Better Auth's identity/session tables are maintained in reviewed SQL and accessed through its PostgreSQL adapter. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
 
@@ -57,7 +57,10 @@ RLS requires a dedicated runtime database role (`DATABASE_APP_URL`) without supe
 
 Retention jobs and vector embeddings/indexes remain subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
 
-
 ## Source capture API
 
 MEM-015 exposes authenticated workspace-scoped source metadata and chunk endpoints. Source creation stores origin type, title, original filename, MIME type, SHA-256 checksum, capture timestamp and bounded structured metadata. Sources begin in `pending`; replacing the normalized chunk set is transactional and marks the source `ready`. Chunks preserve ordinal, token count, page number, media time offsets and metadata. Archiving is soft and retains provenance. Binary upload and object storage are intentionally not part of MEM-015; see `SOURCES_API.md`.
+
+## Memory lifecycle and evidence
+
+MEM-016 exposes workspace-scoped memory CRUD and lifecycle endpoints. Memories preserve their semantic type, content, summary, confidence, event time, validity interval and structured attributes. Evidence rows link memories to source chunks through composite workspace-qualified foreign keys; evidence records retain classification, optional excerpt, confidence and creation time. Supersession creates a new memory linked to the prior record and marks the prior record `superseded` rather than overwriting history. See `MEMORIES_API.md`.
