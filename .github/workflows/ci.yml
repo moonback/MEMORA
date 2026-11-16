@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main]
+    branches: [develop, main, "feature/MEM-024b-bullmq-outbox-worker"]
 
 jobs:
   quality:
@@ -36,6 +36,8 @@ jobs:
       DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora
       DATABASE_APP_URL: postgresql://memora_app:memora_ci_app_password@localhost:5432/memora
       REDIS_URL: redis://localhost:6379
+      MEMORA_INGESTION_TEST_DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora_ingestion_test
+      MEMORA_INGESTION_TEST_REDIS_URL: redis://localhost:6379/15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -46,6 +48,12 @@ jobs:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
       - run: pnpm db:migrate
+      - name: Create isolated ingestion integration database
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE DATABASE memora_ingestion_test"
+      - name: Apply migrations to isolated ingestion integration database
+        env:
+          DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora_ingestion_test
+        run: pnpm db:migrate
       - name: Provision restricted application database role
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
