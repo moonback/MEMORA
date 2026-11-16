@@ -79,6 +79,12 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
         [workspaceB, userA],
       ).then(() => null, (error: { code?: string }) => error);
       assert.equal(crossTenantInsert?.code, "42501");
+
+      const crossTenantMembership = await app.query(
+        "INSERT INTO workspace_members (workspace_id, user_id, role, status) VALUES ($1, $2, 'member', 'active')",
+        [workspaceB, userA],
+      ).then(() => null, (error: { code?: string }) => error);
+      assert.equal(crossTenantMembership?.code, "42501");
       await app.query("ROLLBACK");
     } finally {
       await app.end();
