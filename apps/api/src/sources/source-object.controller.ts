@@ -42,7 +42,7 @@ export class SourceObjectController {
   ) {
     const parsed = uploadBodySchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException({ message: "Paramètres de téléversement invalides.", issues: parsed.error.issues });
-    let input;
+    let input: ReturnType<typeof validateUploadRequest>;
     try {
       input = validateUploadRequest(parsed.data);
     } catch (error) {
