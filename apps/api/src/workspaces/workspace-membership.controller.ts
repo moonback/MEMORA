@@ -7,6 +7,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Patch,
   UseGuards,
   ForbiddenException,
@@ -56,7 +57,7 @@ export class WorkspaceMembershipController {
   @RequireWorkspaceRoles("owner", "admin")
   async updateRole(
     @Param("workspaceId") workspaceId: string,
-    @Param("memberUserId") memberUserId: string,
+    @Param("memberUserId", new ParseUUIDPipe()) memberUserId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
     @Body() body: unknown,
   ) {
