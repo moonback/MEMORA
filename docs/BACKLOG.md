@@ -28,7 +28,7 @@
 ## Capture Engine
 - [x] MEM-022 Manual capture and source library (merged PR #41)
 - [~] MEM-023 Binary file import UX and upload progress (implementation branch; local validation pending)
-- [ ] MEM-024 Ingestion job orchestration and source processing states
+- [~] MEM-024 Durable ingestion state, transactional outbox and tenant-visible processing status (worker/Redis dispatch remains)
 
 ## Intelligence & Recall
 - [ ] MEM-025 Text extraction and normalization pipeline
