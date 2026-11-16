@@ -1,5 +1,3 @@
-import { PermanentSourceIngestionError } from "./source-ingestion-processor.js";
-
 export const SOURCE_INGESTION_QUEUE = "source-ingestion";
 
 export interface SourceIngestionJobData {
@@ -18,8 +16,8 @@ export function redisConnectionOptions() {
   return {
     host: url.hostname,
     port: url.port ? Number(url.port) : 6379,
-    username: url.username ? decodeURIComponent(url.username) : undefined,
-    password: url.password ? decodeURIComponent(url.password) : undefined,
+    ...(url.username ? { username: decodeURIComponent(url.username) } : {}),
+    ...(url.password ? { password: decodeURIComponent(url.password) } : {}),
     db,
     ...(url.protocol === "rediss:" ? { tls: {} } : {}),
     maxRetriesPerRequest: null,

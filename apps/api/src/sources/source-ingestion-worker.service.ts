@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { Job, Queue, Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
+import type { Job } from "bullmq";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { assertSafeJobData, redisConnectionOptions, SOURCE_INGESTION_QUEUE, type SourceIngestionJobData } from "./source-ingestion-queue.js";
