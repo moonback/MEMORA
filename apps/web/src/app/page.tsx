@@ -20,7 +20,7 @@ export default function HomePage() {
       <a className="brand" href="#"><span className="brand-mark"><Brain size={19}/></span><span>MEMORA</span></a>
       <div className="workspace-switch"><span className="workspace-avatar">M</span><span><b>Mon espace</b><small>Espace personnel</small></span><ChevronDown size={15}/></div>
       <div className="nav-label">ESPACE</div>
-      <nav className="navigation">{sections.map(({label,icon:Icon,active})=><a key={label} className={active?"nav-item active":"nav-item"} href="#"><Icon size={17}/><span>{label}</span>{label==="Mes mémoires"&&<small>0</small>}</a>)}</nav>
+      <nav className="navigation">{sections.map(({label,icon:Icon,active})=><a key={label} className={active?"nav-item active":"nav-item"} href={label === "Personnes & projets" ? "/workspaces" : "#"}><Icon size={17}/><span>{label}</span>{label==="Mes mémoires"&&<small>0</small>}</a>)}</nav>
       <div className="nav-label second-label">ORGANISATION</div>
       <nav className="navigation"><a className="nav-item" href="#"><Folder size={17}/><span>Collections</span></a><a className="nav-item" href="#"><Sparkles size={17}/><span>Assistant mémoire</span><span className="soon">À venir</span></a></nav>
       <div className="sidebar-bottom">
