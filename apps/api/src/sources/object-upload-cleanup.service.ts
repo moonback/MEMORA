@@ -32,11 +32,6 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
     this.pool = new Pool({ connectionString, max: 2 });
   }
 
-  configurePoolForTests(pool: Pool): void {
-    this.pool = pool;
-    this.ownsPool = false;
-  }
-
   onModuleInit(): void {
     this.timer = setInterval(() => { void this.runSafely(); }, CLEANUP_INTERVAL_MS);
     this.timer.unref?.();
