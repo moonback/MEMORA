@@ -11,6 +11,7 @@ Updated: 2026-11-16
 - Profile and account settings merged via PR #23.
 - Personal workspace lifecycle merged via PR #24.
 - MEM-013 merged via PR #27 (RBAC, invitations and shared workspace management).
+- MEM-014 pull request: #29 (open; awaiting a real CI run).
 - Current implementation branch: `feature/MEM-014-rls-isolation`.
 
 ## Merged into main
@@ -39,7 +40,7 @@ Updated: 2026-11-16
 - Add negative cross-tenant integration tests.
 
 ## Validation status
-GitHub integration authored all changes; no local dependency installation, typecheck, build or PostgreSQL runtime execution has been performed. GitHub Actions runs on PR #21, PR #22 and PR #23 ended in `startup_failure` before creating any jobs; MEM-012 was merged under explicit user direction with no CI jobs available. MEM-013 was merged in PR #27; CI remained unavailable due to startup_failure. MEM-014 is not yet validated. Configure SMTP and a unique production `BETTER_AUTH_SECRET` before production use.
+GitHub integration authored all changes; no local dependency installation, typecheck, build or PostgreSQL runtime execution has been performed. GitHub Actions runs on PR #21, PR #22 and PR #23 ended in `startup_failure` before creating any jobs; MEM-012 was merged under explicit user direction with no CI jobs available. MEM-013 was merged in PR #27; CI remained unavailable due to startup_failure. MEM-014 is in PR #29 and not yet validated; GitHub Actions run #288 ended in `startup_failure` with zero jobs. Configure SMTP and a unique production `BETTER_AUTH_SECRET` before production use.
 
 ## Not yet implemented
 Owner transfer, audit events for membership changes, invitation email delivery retries/throttling, source ingestion, memory CRUD, AI extraction and recall, external connectors, mobile and desktop clients, retention/deletion workflows, account deletion/email change and production hardening.
