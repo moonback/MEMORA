@@ -59,6 +59,11 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
     const app = new Client({ connectionString: appUrl });
     await app.connect();
     try {
+      const role = await app.query<{ rolsuper: boolean; rolbypassrls: boolean }>(
+        "SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user",
+      );
+      assert.equal(role.rows[0]?.rolsuper, false);
+      assert.equal(role.rows[0]?.rolbypassrls, false);
       await app.query("BEGIN");
       await app.query("SELECT set_config('app.auth_user_id', $1, true)", [authUserA]);
       await app.query("SELECT set_config('app.user_id', $1, true)", [userA]);
