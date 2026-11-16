@@ -19,12 +19,15 @@ export default function LoginPage() {
     setMessage("");
     try {
       const requestedReturnTo = new URLSearchParams(window.location.search).get("returnTo");
-      const candidate = requestedReturnTo
-        ? new URL(requestedReturnTo, window.location.origin)
-        : new URL("/", window.location.origin);
-      const callbackURL = candidate.origin === window.location.origin
-        ? candidate.toString()
-        : `${window.location.origin}/`;
+      let callbackURL = `${window.location.origin}/`;
+      if (requestedReturnTo) {
+        try {
+          const candidate = new URL(requestedReturnTo, window.location.origin);
+          if (candidate.origin === window.location.origin) callbackURL = candidate.toString();
+        } catch {
+          callbackURL = `${window.location.origin}/`;
+        }
+      }
       const result = mode === "signup"
         ? await authClient.signUp.email({ name, email, password, callbackURL })
         : await authClient.signIn.email({ email, password, callbackURL });
