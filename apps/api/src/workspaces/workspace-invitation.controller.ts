@@ -99,6 +99,7 @@ export class WorkspaceInvitationController {
     } finally {
       client.release();
     }
+    if (!saved) throw new Error("Invitation could not be persisted.");
     const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
     const url = `${webOrigin}/invite/accept?token=${encodeURIComponent(token)}`;
     queueAuthEmail({
