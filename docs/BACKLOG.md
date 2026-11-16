@@ -12,13 +12,25 @@
 
 ## Identity & Memory Core
 - [x] MEM-009 Database schema and migrations
-- [x] MEM-010 Authentication (merged; automated validation unavailable)
-- [x] MEM-011 User profile and account settings (merged; automated validation unavailable)
-- [x] MEM-012 Personal workspace lifecycle (merged)
-- [x] MEM-013 Workspace membership and RBAC (merged)
-- [x] MEM-014 PostgreSQL RLS and tenant isolation (merged)
-- [x] MEM-015 Source and source chunk models (workspace-scoped API, chunk replacement, checksum and provenance)
-- [x] MEM-016 Memory model and evidence provenance (merged via PR #31)
-- [x] MEM-017 Entity and knowledge relations (merged via PR #32)
-- [x] MEM-018 Audit log and security integration tests (merged via PR #34)
-- [~] MEM-019 EU object storage metadata and secure upload lifecycle
+- [x] MEM-010 Authentication
+- [x] MEM-011 User profile and account settings
+- [x] MEM-012 Personal workspace lifecycle
+- [x] MEM-013 Workspace membership and RBAC
+- [x] MEM-014 PostgreSQL RLS and tenant isolation
+- [x] MEM-015 Source and source chunk models
+- [x] MEM-016 Memory model and evidence provenance
+- [x] MEM-017 Entity and knowledge relations
+- [x] MEM-018 Append-only audit log and security integration tests
+- [x] MEM-019 EU object storage metadata and presigned upload
+- [x] MEM-020 Private object storage adapter and secure upload workflow
+- [x] MEM-021 Object upload expiry, cleanup and lifecycle security tests
+
+## Capture Engine
+- [~] MEM-022 Manual capture and source library (implementation branch; local validation pending)
+- [ ] MEM-023 Binary file import UX and upload progress
+- [ ] MEM-024 Ingestion job orchestration and source processing states
+
+## Intelligence & Recall
+- [ ] MEM-025 Text extraction and normalization pipeline
+- [ ] MEM-026 AI memory extraction with evidence references
+- [ ] MEM-027 Hybrid search and grounded recall
