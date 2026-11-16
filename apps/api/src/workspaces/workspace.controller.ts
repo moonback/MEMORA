@@ -9,6 +9,7 @@ import {
   Post,
   UnauthorizedException,
 } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Pool, PoolClient } from "pg";
 import { auth, authPool } from "../auth/auth.js";
@@ -21,7 +22,7 @@ type WorkspaceRow = {
   id: string;
   name: string;
   slug: string;
-  type: "personal";
+  type: "personal" | "shared";
   description: string | null;
   metadata: Record<string, unknown>;
   archived_at: Date | null;
@@ -72,8 +73,75 @@ async function getDomainUserId(
   return user.id;
 }
 
+const sharedWorkspaceCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).nullable().optional(),
+}).strict();
+
 @Controller("workspaces")
 export class WorkspaceController {
+  @Get()
+  async list(@CurrentSession() session: AuthSession | undefined) {
+    if (!session) throw new UnauthorizedException();
+    const userId = await getDomainUserId(authPool, session.user.id);
+    const result = await authPool.query<WorkspaceRow & { role: string; status: string }>(
+      `SELECT w.id, w.name, w.slug, w.type, w.description, w.metadata,
+              w.archived_at, w.created_at, w.updated_at, wm.role, wm.status
+       FROM workspace_members wm
+       JOIN workspaces w ON w.id = wm.workspace_id
+       WHERE wm.user_id = $1
+       ORDER BY w.created_at ASC`,
+      [userId],
+    );
+    return {
+      workspaces: result.rows.map((row) => {
+        const { role, status, ...workspace } = row;
+        return { workspace: toWorkspaceDto(workspace), role, status };
+      }),
+    };
+  }
+
+  @Post()
+  async createShared(
+    @CurrentSession() session: AuthSession | undefined,
+    @Body() body: unknown,
+  ) {
+    if (!session) throw new UnauthorizedException();
+    const parsed = sharedWorkspaceCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: "Informations d’espace invalides.",
+        issues: parsed.error.issues,
+      });
+    }
+
+    const client = await authPool.connect();
+    try {
+      await client.query("BEGIN");
+      const userId = await getDomainUserId(client, session.user.id);
+      const result = await client.query<WorkspaceRow>(
+        `INSERT INTO workspaces (name, slug, type, owner_user_id, description)
+         VALUES ($1, $2, 'shared', $3, $4)
+         RETURNING ${workspaceFields}`,
+        [parsed.data.name, `shared-${randomUUID()}`, userId, parsed.data.description ?? null],
+      );
+      const workspace = result.rows[0];
+      if (!workspace) throw new Error("Shared workspace could not be created.");
+      await client.query(
+        `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
+         VALUES ($1, $2, 'owner', 'active', now())`,
+        [workspace.id, userId],
+      );
+      await client.query("COMMIT");
+      return { workspace: toWorkspaceDto(workspace), role: "owner" as const };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   @Get("personal")
   async getPersonal(@CurrentSession() session: AuthSession | undefined) {
     if (!session) throw new UnauthorizedException();
