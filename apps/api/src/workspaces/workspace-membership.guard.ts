@@ -10,6 +10,7 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { z } from "zod";
 import { authPool } from "../auth/auth.js";
+import { DomainUserNotFoundError, withUserContext } from "../auth/db-context.js";
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export interface WorkspaceMembershipContext {
@@ -38,23 +39,38 @@ export class WorkspaceMembershipGuard implements CanActivate {
     if (!session || !workspaceId) throw new ForbiddenException("Contexte de session ou d’espace manquant.");
     if (!z.string().uuid().safeParse(workspaceId).success) throw new BadRequestException("Identifiant d’espace invalide.");
 
-    const result = await authPool.query<{
+    let membership: {
       user_id: string;
       role: WorkspaceRole;
       archived_at: Date | null;
       workspace_type: "personal" | "shared";
-    }>(
-      `SELECT wm.user_id, wm.role, w.archived_at, w.type AS workspace_type
-       FROM workspace_members wm
-       JOIN workspaces w ON w.id = wm.workspace_id
-       JOIN users u ON u.id = wm.user_id
-       WHERE wm.workspace_id = $1
-         AND u.auth_user_id = $2
-         AND wm.status = 'active'
-       LIMIT 1`,
-      [workspaceId, session.user.id],
-    );
-    const membership = result.rows[0];
+    } | undefined;
+    try {
+      membership = await withUserContext(authPool, session.user.id, async (client, userId) => {
+        const result = await client.query<{
+          user_id: string;
+          role: WorkspaceRole;
+          archived_at: Date | null;
+          workspace_type: "personal" | "shared";
+        }>(
+          `SELECT wm.user_id, wm.role, w.archived_at, w.type AS workspace_type
+           FROM workspace_members wm
+           JOIN workspaces w ON w.id = wm.workspace_id
+           WHERE wm.workspace_id = $1
+             AND wm.user_id = $2
+             AND wm.status = 'active'
+           LIMIT 1`,
+          [workspaceId, userId],
+        );
+        return result.rows[0];
+      }, { workspaceId });
+    } catch (error) {
+      if (error instanceof DomainUserNotFoundError) {
+        throw new ForbiddenException("Profil MEMORA introuvable pour cette session.");
+      }
+      throw error;
+    }
+
     if (!membership) throw new ForbiddenException("Vous n'êtes pas membre de cet espace.");
     if (membership.archived_at) throw new ConflictException("Cet espace est archivé.");
 
