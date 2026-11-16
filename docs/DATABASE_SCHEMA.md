@@ -14,7 +14,7 @@
 | Domain | Tables | Purpose |
 |---|---|---|
 | Identity | users, user, session, account, verification | UUID-based MEMORA profile plus Better Auth credentials, sessions and verification tokens |
-| Workspace | workspaces, workspace_members, workspace_invitations | Personal/shared spaces, membership and invitations |
+| Workspace | workspaces, workspace_members, workspace_invitations | Personal/shared spaces, owner metadata, reversible archive state, membership and invitations |
 | Privacy | consents | Purpose-specific, versioned consent history |
 | Capture | sources, source_chunks | Imported origin records and normalized text chunks |
 | Memory | memories, memory_evidence | Typed, temporal memories with provenance |
@@ -31,12 +31,14 @@
 - Entity canonical names are unique case-insensitively per workspace and entity type.
 - External source identifiers are unique per workspace/provider when supplied.
 - Invitation tokens are stored as hashes, not raw invitation tokens.
+- A partial unique index guarantees at most one personal workspace per owner; shared workspaces are not restricted.
+- Personal workspace metadata includes a bounded description, JSON metadata and a reversible `archived_at` timestamp.
 
 ## Migrations
 
 The reviewed SQL files in `packages/database/migrations` are the migration source of truth. They are applied in lexical order by `pnpm db:migrate` (or `pnpm --filter @memora/database db:migrate`). The runner records applied filenames in `public._memora_migrations`, applies each file in a transaction, and uses a PostgreSQL advisory lock to prevent concurrent migration runners.
 
-Add future migrations as the next zero-padded SQL filename (for example, `0003_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
+Add future migrations as the next zero-padded SQL filename (for example, `0004_next_domain_change.sql`). Do not edit a migration after it has been applied to a shared or production database; add a corrective migration instead.
 
 The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the application-domain model for typed queries and Drizzle Studio. Better Auth's identity/session tables are maintained in reviewed SQL and accessed through its PostgreSQL adapter. Migrations are intentionally reviewed SQL rather than untracked auto-generated snapshots.
 
