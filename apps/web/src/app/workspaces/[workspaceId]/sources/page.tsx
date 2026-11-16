@@ -245,7 +245,7 @@ export default function SourceLibraryPage() {
                   {(busy || uploadStage) && <div className="source-upload-status" role="status">
                     <div className="source-upload-status-line"><b>{uploadStage}</b><span>{uploadProgress}%</span></div>
                     <div className="source-progress"><span style={{ width: `${uploadProgress}%` }} /></div>
-                    {busy && <button type="button" className="source-cancel" onClick={cancelUpload}>Annuler le transfert</button>}
+                    {busy && uploadStage.startsWith("Téléversement sécurisé") && <button type="button" className="source-cancel" onClick={cancelUpload}>Annuler le transfert</button>}
                   </div>}
                   {!busy && retryTransfer && error && <button type="button" className="source-retry" onClick={() => void retryUpload()}>Réessayer le transfert</button>}
                 </form>
