@@ -2,6 +2,8 @@
 
 - Never commit credentials, tokens or private user data.
 - Enforce authentication and authorization server-side.
+- Require active workspace membership and role checks for every workspace-scoped API route.
+- Store invitation token hashes only; require verified email ownership and single-use, expiring invitation tokens.
 - Apply workspace isolation to every private record.
 - Use PostgreSQL RLS as defense in depth.
 - Scope database context per transaction; never trust an unverified workspace ID from a client.
