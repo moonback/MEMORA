@@ -31,7 +31,7 @@ export class SourceIngestionDispatcherService implements OnModuleInit, OnModuleD
     this.queue = new Queue<SourceIngestionJobData>(SOURCE_INGESTION_QUEUE, {
       connection: redisConnectionOptions(),
       defaultJobOptions: {
-        attempts: this.readInt("INGESTION_MAX_ATTEMPTS", 5, 1, 10),
+        attempts: this.readInt("INGESTION_MAX_ATTEMPTS", 5, 5, 10),
         backoff: { type: "exponential", delay: 2000 },
         removeOnComplete: 1000,
         removeOnFail: 1000,
