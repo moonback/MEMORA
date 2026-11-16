@@ -274,6 +274,7 @@ export default function SettingsPage() {
               </section>
             </>
           )}
+          <p className="settings-footnote"><Link href="/workspaces" className="settings-back">Gérer mes espaces partagés →</Link></p>
           <p className="settings-footnote">MEMORA ne collecte que les informations nécessaires au fonctionnement de votre compte. Vos préférences restent modifiables.</p>
         </section>
       </main>
