@@ -17,7 +17,7 @@ Supported source types: document, email, audio, note, image, manual and web_clip
 
 ## Storage boundary
 
-This milestone stores metadata, checksums and extracted text chunks. It does not yet accept binary uploads, issue presigned URLs, or persist object bytes. The `storage_key` remains server-managed and cannot be supplied by a client. EU object storage and upload scanning belong to the ingestion/storage milestone.
+The source metadata API still does not accept binary bytes or expose presigned URLs. MEM-019 adds a separate `source_objects` record for private object coordinates and verified upload metadata. Object keys are generated server-side and are never accepted from client payloads. A concrete storage adapter, signed upload flow and malware scanning are not yet enabled; see `OBJECT_STORAGE.md`.
 
 ## Isolation and provenance
 
