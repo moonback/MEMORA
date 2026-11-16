@@ -24,7 +24,7 @@ type AuthSession = {
   user: { id: string; email: string; emailVerified: boolean };
 };
 
-const invitationSchema = z.object({
+export const invitationSchema = z.object({
   email: z.string().trim().email().max(320),
   role: z.enum(["admin", "member", "viewer"]).default("member"),
 }).strict();
