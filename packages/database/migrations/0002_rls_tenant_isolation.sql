@@ -101,20 +101,14 @@ CREATE POLICY workspace_members_select_self_or_current_workspace ON public.works
     user_id = public.memora_current_user_id()
     OR workspace_id = public.memora_current_workspace_id()
   );
-CREATE POLICY workspace_members_insert_self_or_current_workspace ON public.workspace_members
-  FOR INSERT WITH CHECK (
-    user_id = public.memora_current_user_id()
-    OR workspace_id = public.memora_current_workspace_id()
-  );
+CREATE POLICY workspace_members_insert_current_workspace ON public.workspace_members
+  FOR INSERT WITH CHECK (workspace_id = public.memora_current_workspace_id());
 CREATE POLICY workspace_members_update_current_workspace ON public.workspace_members
   FOR UPDATE
   USING (workspace_id = public.memora_current_workspace_id())
   WITH CHECK (workspace_id = public.memora_current_workspace_id());
 CREATE POLICY workspace_members_delete_current_workspace ON public.workspace_members
-  FOR DELETE USING (
-    workspace_id = public.memora_current_workspace_id()
-    OR user_id = public.memora_current_user_id()
-  );
+  FOR DELETE USING (workspace_id = public.memora_current_workspace_id());
 
 ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workspace_invitations FORCE ROW LEVEL SECURITY;
