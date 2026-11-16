@@ -38,7 +38,7 @@ The development fallback secret is for local work only and must never be used in
 2. Configure SMTP values to receive verification and reset messages.
 3. Start PostgreSQL and Redis with `docker compose up -d`.
 4. Apply migrations with `pnpm db:migrate`.
-5. Install dependencies and start the API and web apps with `pnpm install` and `pnpm dev`.
+5. Install dependencies and start the API and web apps with `pnpm install` and `pnpm dev`. If Next.js does not load the monorepo root `.env`, copy `NEXT_PUBLIC_API_URL` into `apps/web/.env.local`.
 6. Open `http://localhost:3000/login`.
 
 ## Security boundaries
