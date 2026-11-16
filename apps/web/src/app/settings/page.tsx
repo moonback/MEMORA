@@ -9,7 +9,7 @@ import { authClient } from "../../lib/auth-client";
 type AccountData = {
   user: { id: string; name: string; email: string; emailVerified: boolean };
   profile: { id: string; displayName: string | null; locale: string; timeZone: string };
-  workspace: { id: string; name: string; slug: string; type: string } | null;
+  workspace: { id: string; name: string; slug: string; type: string; description: string | null; metadata: Record<string, unknown>; archivedAt: string | null; createdAt: string; updatedAt: string } | null;
 };
 
 type DeviceSession = {
@@ -30,6 +30,10 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [locale, setLocale] = useState("fr-FR");
   const [timeZone, setTimeZone] = useState("Europe/Paris");
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceDescription, setWorkspaceDescription] = useState("");
+  const [workspaceBusy, setWorkspaceBusy] = useState(false);
+  const [workspaceMessage, setWorkspaceMessage] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -47,6 +51,8 @@ export default function SettingsPage() {
     setName(data.profile.displayName ?? data.user.name);
     setLocale(data.profile.locale);
     setTimeZone(data.profile.timeZone);
+    setWorkspaceName(data.workspace?.name ?? "Espace personnel");
+    setWorkspaceDescription(data.workspace?.description ?? "");
   }
 
   async function loadSessions() {
@@ -82,6 +88,69 @@ export default function SettingsPage() {
       setError(reason instanceof Error ? reason.message : "La mise à jour a échoué.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveWorkspace(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setWorkspaceBusy(true);
+    setWorkspaceMessage("");
+    setError("");
+    try {
+      const response = await fetch(`${apiUrl}/api/workspaces/personal`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: workspaceName, description: workspaceDescription.trim() || null }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message ?? "Impossible de modifier l’espace personnel.");
+      setWorkspaceMessage("Les informations de l’espace ont été enregistrées.");
+      await loadAccount();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Impossible de modifier l’espace personnel.");
+    } finally {
+      setWorkspaceBusy(false);
+    }
+  }
+
+  async function changeWorkspaceState(archived: boolean) {
+    setWorkspaceBusy(true);
+    setWorkspaceMessage("");
+    setError("");
+    try {
+      const action = archived ? "archive" : "restore";
+      const response = await fetch(`${apiUrl}/api/workspaces/personal/${action}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message ?? "Impossible de modifier le statut de l’espace.");
+      setWorkspaceMessage(archived ? "Espace archivé. Vos données sont conservées." : "Espace restauré.");
+      await loadAccount();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Impossible de modifier le statut de l’espace.");
+    } finally {
+      setWorkspaceBusy(false);
+    }
+  }
+
+  async function ensureWorkspace() {
+    setWorkspaceBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`${apiUrl}/api/workspaces/personal/ensure`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message ?? "Impossible de créer l’espace personnel.");
+      setWorkspaceMessage("Votre espace personnel est prêt.");
+      await loadAccount();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Impossible de créer l’espace personnel.");
+    } finally {
+      setWorkspaceBusy(false);
     }
   }
 
@@ -150,6 +219,31 @@ export default function SettingsPage() {
                   </div>
                   <div className="settings-form-footer"><span className="settings-success" role="status">{message}</span><button className="primary-button" disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer les modifications"}</button></div>
                 </form>
+              </section>
+
+              <section className="settings-card">
+                <div className="settings-card-heading">
+                  <div><h2>Espace personnel</h2><p>Nom, description et état de votre espace MEMORA.</p></div>
+                  {account?.workspace && <span className={account.workspace.archivedAt ? "workspace-state archived" : "workspace-state"}>{account.workspace.archivedAt ? "Archivé" : "Actif"}</span>}
+                </div>
+                {account?.workspace ? (
+                  <>
+                    <div className="workspace-slug">Identifiant : <code>{account.workspace.slug}</code></div>
+                    <form className="settings-form" onSubmit={saveWorkspace}>
+                      <label>Nom de l’espace<input value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} required maxLength={120} disabled={Boolean(account.workspace.archivedAt)} /></label>
+                      <label>Description<textarea value={workspaceDescription} onChange={(event) => setWorkspaceDescription(event.target.value)} maxLength={500} rows={3} disabled={Boolean(account.workspace.archivedAt)} /></label>
+                      <div className="settings-form-footer"><span className="settings-success" role="status">{workspaceMessage}</span><button className="primary-button" disabled={workspaceBusy || Boolean(account.workspace.archivedAt)}>{workspaceBusy ? "Enregistrement…" : "Enregistrer l’espace"}</button></div>
+                    </form>
+                    <div className="workspace-lifecycle">
+                      {account.workspace.archivedAt
+                        ? <button type="button" className="workspace-secondary" disabled={workspaceBusy} onClick={() => void changeWorkspaceState(false)}>Restaurer l’espace</button>
+                        : <button type="button" className="workspace-secondary danger" disabled={workspaceBusy} onClick={() => void changeWorkspaceState(true)}>Archiver l’espace</button>}
+                      <small>L’archivage est réversible. Il ne supprime ni votre compte ni vos données.</small>
+                    </div>
+                  </>
+                ) : (
+                  <div className="workspace-empty"><p>Aucun espace personnel n’est associé à ce compte.</p><button type="button" className="primary-button" disabled={workspaceBusy} onClick={() => void ensureWorkspace()}>{workspaceBusy ? "Création…" : "Créer mon espace personnel"}</button></div>
+                )}
               </section>
 
               <section className="settings-card">

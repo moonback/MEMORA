@@ -3,8 +3,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
-import { randomUUID } from "node:crypto";
 import { queueAuthEmail } from "./mailer.js";
+import { ensurePersonalWorkspace } from "../workspaces/personal-workspace.service.js";
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", ".env") });
 
@@ -49,7 +49,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, url }) => {
-      await sendAuthEmail({
+      queueAuthEmail({
         to: user.email,
         subject: "Confirmez votre adresse e-mail MEMORA",
         text: `Pour confirmer votre adresse e-mail, ouvrez ce lien : ${url}`,
@@ -74,28 +74,7 @@ export const auth = betterAuth({
             const appUserRow = appUser.rows[0];
             if (!appUserRow) throw new Error("Could not provision the MEMORA user profile.");
             const userId = appUserRow.id;
-            const existingWorkspace = await client.query<{ id: string }>(
-              "SELECT id FROM workspaces WHERE owner_user_id = $1 AND type = 'personal' LIMIT 1",
-              [userId],
-            );
-            let workspaceId = existingWorkspace.rows[0]?.id;
-            if (!workspaceId) {
-              const created = await client.query<{ id: string }>(
-                `INSERT INTO workspaces (name, slug, type, owner_user_id)
-                 VALUES ($1, $2, 'personal', $3) RETURNING id`,
-                ["Espace personnel", `personal-${randomUUID().slice(0, 8)}`, userId],
-              );
-              const createdWorkspace = created.rows[0];
-              if (!createdWorkspace) throw new Error("Could not create the personal workspace.");
-              workspaceId = createdWorkspace.id;
-            }
-            if (!workspaceId) throw new Error("Personal workspace provisioning failed.");
-            await client.query(
-              `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
-               VALUES ($1, $2, 'owner', 'active', now())
-               ON CONFLICT (workspace_id, user_id) DO NOTHING`,
-              [workspaceId, userId],
-            );
+            await ensurePersonalWorkspace(client, userId);
             await client.query("COMMIT");
           } catch (error) {
             await client.query("ROLLBACK");

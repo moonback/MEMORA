@@ -63,11 +63,18 @@ export class AccountController {
       name: string;
       slug: string;
       type: string;
+      description: string | null;
+      metadata: Record<string, unknown>;
+      archived_at: Date | null;
+      created_at: Date;
+      updated_at: Date;
     }>(
-      `SELECT id, name, slug, type FROM workspaces
+      `SELECT id, name, slug, type, description, metadata, archived_at, created_at, updated_at FROM workspaces
        WHERE owner_user_id = $1 AND type = 'personal' LIMIT 1`,
       [profile.id],
     );
+
+    const personalWorkspace = workspaceResult.rows[0];
 
     return {
       user: {
@@ -82,7 +89,17 @@ export class AccountController {
         locale: profile.locale,
         timeZone: profile.time_zone,
       },
-      workspace: workspaceResult.rows[0] ?? null,
+      workspace: personalWorkspace ? {
+        id: personalWorkspace.id,
+        name: personalWorkspace.name,
+        slug: personalWorkspace.slug,
+        type: personalWorkspace.type,
+        description: personalWorkspace.description,
+        metadata: personalWorkspace.metadata,
+        archivedAt: personalWorkspace.archived_at,
+        createdAt: personalWorkspace.created_at,
+        updatedAt: personalWorkspace.updated_at,
+      } : null,
       session: {
         id: session.session.id,
         expiresAt: session.session.expiresAt,
