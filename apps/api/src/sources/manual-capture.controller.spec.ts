@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { manualCaptureSchema } from "./manual-capture.controller.js";
+import { Reflect } from "@nestjs/core";
+import { manualCaptureSchema, ManualCaptureController } from "./manual-capture.controller.js";
 
 describe("manual capture request contract", () => {
   it("accepts a bounded note with an optional capture timestamp", () => {
