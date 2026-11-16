@@ -36,6 +36,12 @@ CREATE POLICY users_select_self ON public.users
   FOR SELECT USING (
     auth_user_id = public.memora_current_auth_user_id()
     OR id = public.memora_current_user_id()
+    OR EXISTS (
+      SELECT 1 FROM public.workspace_members wm
+      WHERE wm.user_id = users.id
+        AND wm.workspace_id = public.memora_current_workspace_id()
+        AND wm.status = 'active'
+    )
   );
 CREATE POLICY users_insert_self ON public.users
   FOR INSERT WITH CHECK (auth_user_id = public.memora_current_auth_user_id());
