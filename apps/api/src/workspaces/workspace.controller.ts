@@ -89,7 +89,7 @@ export class WorkspaceController {
               w.archived_at, w.created_at, w.updated_at, wm.role, wm.status
        FROM workspace_members wm
        JOIN workspaces w ON w.id = wm.workspace_id
-       WHERE wm.user_id = $1
+       WHERE wm.user_id = $1 AND wm.status = 'active'
        ORDER BY w.created_at ASC`,
       [userId],
     );
