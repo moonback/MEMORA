@@ -138,17 +138,20 @@ export class WorkspaceInvitationController {
     @Param("invitationId") invitationId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
-    const result = await authPool.query<{ role: string }>(
-      `DELETE FROM workspace_invitations
-       WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL
-       RETURNING role`,
+    const current = await authPool.query<{ role: string }>(
+      `SELECT role FROM workspace_invitations
+       WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL`,
       [invitationId, workspaceId],
     );
-    const invitation = result.rows[0];
+    const invitation = current.rows[0];
     if (!invitation) throw new NotFoundException("Invitation en attente introuvable.");
     if (actor.role === "admin" && invitation.role === "admin") {
       throw new ForbiddenException("Un administrateur ne peut pas révoquer une invitation d'administrateur.");
     }
+    await authPool.query(
+      "DELETE FROM workspace_invitations WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL",
+      [invitationId, workspaceId],
+    );
     return { success: true };
   }
 }
