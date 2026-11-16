@@ -186,7 +186,10 @@ CREATE POLICY workspace_members_update_roles ON workspace_members
   USING (
     workspace_id = memora_current_workspace_id()
     AND (
-      memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['owner']::workspace_role[])
+      (
+        memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['owner']::workspace_role[])
+        AND role <> 'owner'
+      )
       OR (
         memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['admin']::workspace_role[])
         AND role IN ('member', 'viewer')
@@ -204,7 +207,10 @@ CREATE POLICY workspace_members_update_roles ON workspace_members
   WITH CHECK (
     workspace_id = memora_current_workspace_id()
     AND (
-      memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['owner']::workspace_role[])
+      (
+        memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['owner']::workspace_role[])
+        AND role <> 'owner'
+      )
       OR (
         memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['admin']::workspace_role[])
         AND role IN ('member', 'viewer')
@@ -225,7 +231,10 @@ CREATE POLICY workspace_members_delete_roles_or_self ON workspace_members
   USING (
     workspace_id = memora_current_workspace_id()
     AND (
-      memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['owner']::workspace_role[])
+      (
+        memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['owner']::workspace_role[])
+        AND role <> 'owner'
+      )
       OR (
         memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['admin']::workspace_role[])
         AND role IN ('member', 'viewer')
