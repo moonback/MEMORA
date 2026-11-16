@@ -1,6 +1,24 @@
 {
-  "name":"@memora/database","version":"0.1.0","private":true,
-  "scripts":{"db:generate":"drizzle-kit generate","db:migrate":"drizzle-kit migrate","db:studio":"drizzle-kit studio","build":"tsc --noEmit","lint":"tsc --noEmit","typecheck":"tsc --noEmit","test":"node -e \"console.log('Database integration tests pending')\""},
-  "dependencies":{"drizzle-orm":"^0.44.5","pg":"^8.16.3"},
-  "devDependencies":{"@types/pg":"^8.15.5","drizzle-kit":"^0.31.4","typescript":"^5.9.3"}
+  "name": "@memora/database",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:studio": "drizzle-kit studio",
+    "build": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "node -e \"console.log('Database integration tests require PostgreSQL; run pnpm db:migrate against the test database')\""
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.5",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "drizzle-kit": "^0.31.4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  }
 }
