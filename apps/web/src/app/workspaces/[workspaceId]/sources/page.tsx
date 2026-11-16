@@ -135,6 +135,7 @@ export default function SourceLibraryPage() {
     setNotice("");
     setRetryTransfer(null);
     setUploadProgress(0);
+    let transfer: PendingTransfer | null = null;
     try {
       setUploadStage("Calcul de l’empreinte SHA-256…");
       const checksumSha256 = await calculateSha256(file);
@@ -158,13 +159,14 @@ export default function SourceLibraryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contentType: type.contentType, byteSize: file.size, checksumSha256 }),
       });
-      const transfer: PendingTransfer = { sourceId, uploadUrl: signed.uploadUrl, requiredHeaders: signed.requiredHeaders, file };
+      transfer = { sourceId, uploadUrl: signed.uploadUrl, requiredHeaders: signed.requiredHeaders, file };
       setRetryTransfer(transfer);
       await transferFile(transfer);
       setFile(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Impossible de téléverser ce document.");
-      if (retryTransfer) setUploadStage("Le transfert a échoué. Vous pouvez réessayer avant l’expiration de l’URL temporaire.");
+      if (transfer) setUploadStage("Le transfert a échoué. Vous pouvez réessayer avant l’expiration de l’URL temporaire.");
+      else setUploadStage("");
     } finally {
       setBusy(false);
     }
@@ -232,7 +234,7 @@ export default function SourceLibraryPage() {
                 <div className="settings-card-heading"><div><h2>Importer un document</h2><p>PDF, Word (DOCX), texte ou Markdown · 100 MiB maximum</p></div></div>
                 <form className="settings-form" onSubmit={uploadDocument}>
                   <label className={dragging ? "source-dropzone dragging" : "source-dropzone"} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop}>
-                    <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" disabled={busy} onChange={(event) => selectFile(event.target.files?.[0])} />
+                    <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" disabled={busy} onChange={(event) => { selectFile(event.target.files?.[0]); event.currentTarget.value = ""; }} />
                     <span className="source-drop-icon">↑</span>
                     <b>Glissez un fichier ici ou cliquez pour parcourir</b>
                     <small>PDF · DOCX · TXT · MD</small>
