@@ -155,21 +155,34 @@ export class WorkspaceInvitationController {
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
     if (actor.workspaceType !== "shared") throw new BadRequestException("Les invitations sont réservées aux espaces partagés.");
-    const current = await authPool.query<{ role: string }>(
-      `SELECT role FROM workspace_invitations
-       WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL`,
-      [invitationId, workspaceId],
-    );
-    const invitation = current.rows[0];
-    if (!invitation) throw new NotFoundException("Invitation en attente introuvable.");
-    if (actor.role === "admin" && invitation.role === "admin") {
-      throw new ForbiddenException("Un administrateur ne peut pas révoquer une invitation d'administrateur.");
+    const client = await authPool.connect();
+    try {
+      await client.query("BEGIN");
+      const actorResult = await client.query<{ role: "owner" | "admin" | "member" | "viewer" }>(
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND status = 'active' FOR UPDATE",
+        [workspaceId, actor.userId],
+      );
+      const currentActor = actorResult.rows[0];
+      if (!currentActor) throw new ForbiddenException("Votre accès à cet espace a changé.");
+      const current = await client.query<{ role: "admin" | "member" | "viewer" }> (
+        `SELECT role FROM workspace_invitations
+         WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL FOR UPDATE`,
+        [invitationId, workspaceId],
+      );
+      const invitation = current.rows[0];
+      if (!invitation) throw new NotFoundException("Invitation en attente introuvable.");
+      if (!canInviteRole(currentActor.role, invitation.role)) {
+        throw new ForbiddenException("Votre rôle ne permet pas de révoquer cette invitation.");
+      }
+      await client.query("DELETE FROM workspace_invitations WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL", [invitationId, workspaceId]);
+      await client.query("COMMIT");
+      return { success: true };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
     }
-    await authPool.query(
-      "DELETE FROM workspace_invitations WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL",
-      [invitationId, workspaceId],
-    );
-    return { success: true };
   }
 }
 
