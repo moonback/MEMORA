@@ -117,7 +117,7 @@ export class WorkspaceMembershipController {
   @RequireWorkspaceRoles("owner", "admin")
   async remove(
     @Param("workspaceId") workspaceId: string,
-    @Param("memberUserId") memberUserId: string,
+    @Param("memberUserId", new ParseUUIDPipe()) memberUserId: string,
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
     const target = await authPool.query<{ role: WorkspaceRole }>(
