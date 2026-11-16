@@ -82,7 +82,7 @@ export const supersedeMemorySchema = z.object({
   validUntil: z.string().datetime().optional(),
   attributes: attributesSchema,
 }).strict().refine(
-  (value) => !value.validFrom || !value.validUntil || value.validUntil >= value.validFrom,
+  (value) => !value.validFrom || !value.validUntil || Date.parse(value.validUntil) >= Date.parse(value.validFrom),
   "La fin de validité doit être postérieure au début.",
 );
 
