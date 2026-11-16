@@ -42,7 +42,7 @@ export class WorkspaceMembershipController {
               wm.role, wm.status, wm.joined_at AS "joinedAt"
        FROM workspace_members wm
        JOIN users u ON u.id = wm.user_id
-       WHERE wm.workspace_id = $1
+       WHERE wm.workspace_id = $1 AND wm.status = 'active'
        ORDER BY CASE wm.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END,
                 wm.joined_at ASC NULLS LAST`,
       [workspaceId],
@@ -79,7 +79,7 @@ export class WorkspaceMembershipController {
       const currentActor = actorResult.rows[0];
       if (!currentActor) throw new ForbiddenException("Votre accès à cet espace a changé.");
       const targetResult = await client.query<{ role: WorkspaceRole }>(
-        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 FOR UPDATE",
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND status = 'active' FOR UPDATE",
         [workspaceId, memberUserId],
       );
       const target = targetResult.rows[0];
@@ -109,14 +109,30 @@ export class WorkspaceMembershipController {
     @Param("workspaceId") workspaceId: string,
     @CurrentWorkspaceMembership() membership: WorkspaceMembershipContext,
   ) {
-    if (!canLeaveWorkspace(membership.role)) {
-      throw new ConflictException("Le propriétaire doit transférer la propriété avant de quitter l’espace.");
+    const client = await authPool.connect();
+    try {
+      await client.query("BEGIN");
+      const current = await client.query<{ role: WorkspaceRole }>(
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND status = 'active' FOR UPDATE",
+        [workspaceId, membership.userId],
+      );
+      const currentMembership = current.rows[0];
+      if (!currentMembership) throw new ForbiddenException("Votre accès à cet espace a changé.");
+      if (!canLeaveWorkspace(currentMembership.role)) {
+        throw new ConflictException("Le propriétaire doit transférer la propriété avant de quitter l’espace.");
+      }
+      await client.query(
+        "DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
+        [workspaceId, membership.userId],
+      );
+      await client.query("COMMIT");
+      return { success: true };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
     }
-    await authPool.query(
-      "DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2",
-      [workspaceId, membership.userId],
-    );
-    return { success: true };
   }
 
   @Delete(":memberUserId")
