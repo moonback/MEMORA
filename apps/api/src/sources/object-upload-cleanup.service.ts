@@ -25,7 +25,6 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
   private pool: Pool;
-  private ownsPool = true;
 
   constructor(private readonly storage: S3ObjectStorageService) {
     const connectionString = process.env.DATABASE_SYSTEM_URL ?? process.env.DATABASE_URL;
@@ -46,7 +45,7 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
 
   async onModuleDestroy(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
-    if (this.ownsPool) await this.pool.end();
+    await this.pool.end();
   }
 
   async runCleanupBatch(): Promise<number> {

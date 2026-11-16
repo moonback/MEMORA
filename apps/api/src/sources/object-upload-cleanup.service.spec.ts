@@ -69,7 +69,6 @@ const suite = describe("MEM-021 PostgreSQL cleanup worker with mocked S3", { ski
       bucket: "memora-test", provider: "s3-compatible",
     });
     const worker = new ObjectUploadCleanupService(storage);
-    worker.configurePoolForTests(pool);
 
     assert.equal(await worker.runCleanupBatch(), 0);
     const failed = await pool.query("SELECT status, cleanup_attempts, cleanup_last_error, cleanup_lease_token FROM source_objects WHERE id = $1", [pendingId]);
