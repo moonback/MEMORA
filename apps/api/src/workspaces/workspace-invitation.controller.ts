@@ -58,38 +58,47 @@ export class WorkspaceInvitationController {
       throw new ForbiddenException("Votre rôle ne permet pas d'inviter ce niveau de permission.");
     }
 
-    const existingMember = await authPool.query(
-      `SELECT wm.user_id FROM workspace_members wm
-       JOIN users u ON u.id = wm.user_id
-       WHERE wm.workspace_id = $1 AND lower(u.email) = $2 AND wm.status = 'active'
-       LIMIT 1`,
-      [workspaceId, email],
-    );
-    if (existingMember.rows[0]) throw new ConflictException("Cette personne est déjà membre de l’espace.");
+    const client = await authPool.connect();
+    let saved: { id: string; email: string; role: string; expires_at: Date } | undefined;
+    try {
+      await client.query("BEGIN");
+      const actorResult = await client.query<{ role: "owner" | "admin" | "member" | "viewer" }>(
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND status = 'active' FOR UPDATE",
+        [workspaceId, actor.userId],
+      );
+      const currentActor = actorResult.rows[0];
+      if (!currentActor || !canInviteRole(currentActor.role, role)) {
+        throw new ForbiddenException("Votre rôle ne permet pas cette invitation.");
+      }
+      const existingMember = await client.query(
+        `SELECT wm.user_id FROM workspace_members wm
+         JOIN users u ON u.id = wm.user_id
+         WHERE wm.workspace_id = $1 AND lower(u.email) = $2 AND wm.status = 'active'
+         LIMIT 1`,
+        [workspaceId, email],
+      );
+      if (existingMember.rows[0]) throw new ConflictException("Cette personne est déjà membre de l’espace.");
 
-    const { token, tokenHash } = createInvitationToken();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const invitation = await authPool.query<{
-      id: string;
-      email: string;
-      role: string;
-      expires_at: Date;
-    }>(
-      `INSERT INTO workspace_invitations
-         (workspace_id, email, role, token_hash, expires_at, invited_by_user_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (workspace_id, email) WHERE accepted_at IS NULL
-       DO UPDATE SET role = EXCLUDED.role,
-                     token_hash = EXCLUDED.token_hash,
-                     expires_at = EXCLUDED.expires_at,
-                     invited_by_user_id = EXCLUDED.invited_by_user_id,
-                     updated_at = now()
-       RETURNING id, email, role, expires_at`,
-      [workspaceId, email, role, tokenHash, expiresAt, actor.userId],
-    );
-    const saved = invitation.rows[0];
-    if (!saved) throw new Error("Invitation could not be persisted.");
-
+      const invitation = await client.query<{ id: string; email: string; role: string; expires_at: Date }>(
+        `INSERT INTO workspace_invitations
+           (workspace_id, email, role, token_hash, expires_at, invited_by_user_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (workspace_id, email) WHERE accepted_at IS NULL
+         DO UPDATE SET role = EXCLUDED.role, token_hash = EXCLUDED.token_hash,
+                       expires_at = EXCLUDED.expires_at, invited_by_user_id = EXCLUDED.invited_by_user_id,
+                       updated_at = now()
+         RETURNING id, email, role, expires_at`,
+        [workspaceId, email, role, tokenHash, expiresAt, actor.userId],
+      );
+      saved = invitation.rows[0];
+      if (!saved) throw new Error("Invitation could not be persisted.");
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
     const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
     const url = `${webOrigin}/invite/accept?token=${encodeURIComponent(token)}`;
     queueAuthEmail({
