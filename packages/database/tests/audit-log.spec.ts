@@ -120,4 +120,19 @@ describe("MEM-018 append-only workspace audit log", { skip: !adminUrl || !appUrl
       await app.end();
     }
   });
+
+  it("rejects privileged direct edits and deletes while allowing workspace cascades", async () => {
+    const event = await admin.query("SELECT id FROM audit_logs WHERE resource_id = $1 ORDER BY created_at LIMIT 1", [sourceA]);
+    assert.ok(event.rows[0]);
+    const updateError = await admin.query(
+      "UPDATE audit_logs SET action = 'tampered' WHERE id = $1",
+      [event.rows[0].id],
+    ).then(() => null, (error: { code?: string }) => error);
+    assert.equal(updateError?.code, "55000");
+    const deleteError = await admin.query(
+      "DELETE FROM audit_logs WHERE id = $1",
+      [event.rows[0].id],
+    ).then(() => null, (error: { code?: string }) => error);
+    assert.equal(deleteError?.code, "55000");
+  });
 });
