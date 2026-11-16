@@ -6,8 +6,7 @@ ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS auth_user_id varchar(64);
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_auth_user_id_unique
-  ON public.users(auth_user_id)
-  WHERE auth_user_id IS NOT NULL;
+  ON public.users(auth_user_id);
 
 ALTER TABLE public.workspaces
   ADD COLUMN IF NOT EXISTS description varchar(500),
