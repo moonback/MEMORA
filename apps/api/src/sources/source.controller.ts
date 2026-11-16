@@ -116,7 +116,13 @@ export class SourceController {
       values.push(filters.offset);
       const offsetParam = values.length;
       const result = await client.query<SourceRow>(
-        `SELECT ${sourceColumns} FROM sources WHERE ${clauses.join(" AND ")}
+        `SELECT ${sourceColumns},
+                (SELECT jsonb_build_object('status', i.status, 'attempts', i.attempts,
+                  'maxAttempts', i.max_attempts, 'updatedAt', i.updated_at,
+                  'lastErrorCode', i.last_error_code)
+                 FROM source_ingestions i WHERE i.source_id = sources.id
+                 ORDER BY i.source_version DESC LIMIT 1) AS ingestion
+         FROM sources WHERE ${clauses.join(" AND ")}
          ORDER BY captured_at DESC NULLS LAST, created_at DESC
          LIMIT $${limitParam} OFFSET $${offsetParam}`,
         values,
@@ -168,7 +174,12 @@ export class SourceController {
       const result = await client.query<SourceRow & { chunk_count: number }>(
         `SELECT s.${sourceColumns.split(", ").join(", s.")},
                 (SELECT count(*)::int FROM source_chunks c
-                 WHERE c.workspace_id = s.workspace_id AND c.source_id = s.id) AS chunk_count
+                 WHERE c.workspace_id = s.workspace_id AND c.source_id = s.id) AS chunk_count,
+                (SELECT jsonb_build_object('status', i.status, 'attempts', i.attempts,
+                  'maxAttempts', i.max_attempts, 'updatedAt', i.updated_at,
+                  'lastErrorCode', i.last_error_code)
+                 FROM source_ingestions i WHERE i.source_id = s.id
+                 ORDER BY i.source_version DESC LIMIT 1) AS ingestion
          FROM sources s WHERE s.id = $1 AND s.workspace_id = $2 LIMIT 1`,
         [sourceId, workspaceId],
       );
