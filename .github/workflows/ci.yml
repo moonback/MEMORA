@@ -25,6 +25,7 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora
+      DATABASE_APP_URL: postgresql://memora_app:memora_ci_app_password@localhost:5432/memora
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -34,6 +35,27 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
+      - name: Provision non-owner runtime role
+        run: |
+          psql "$DATABASE_URL" -v app_password=memora_ci_app_password -v owner_role=memora -v db_name=memora <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'memora_app') THEN
+              CREATE ROLE memora_app LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+            END IF;
+          END
+          $$;
+          ALTER ROLE memora_app NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE;
+          SELECT format('ALTER ROLE memora_app PASSWORD %L', :'app_password') \gexec
+          GRANT CONNECT ON DATABASE :"db_name" TO memora_app;
+          GRANT USAGE ON SCHEMA public TO memora_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE :"owner_role" IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO memora_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE :"owner_role" IN SCHEMA public
+            GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO memora_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE :"owner_role" IN SCHEMA public
+            GRANT EXECUTE ON FUNCTIONS TO memora_app;
+          SQL
       - run: pnpm db:migrate
       - run: pnpm typecheck
       - run: pnpm test
