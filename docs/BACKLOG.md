@@ -16,8 +16,8 @@
 - [x] MEM-011 User profile and account settings (merged; automated validation unavailable)
 - [x] MEM-012 Personal workspace lifecycle (merged; automated validation unavailable)
 - [x] MEM-013 Workspace membership and RBAC (merged; CI startup failure prevented automated validation)
-- [~] MEM-014 PostgreSQL RLS and tenant isolation (policies, restricted role and tenant context in progress)
-- [ ] MEM-015 Source and source chunk models
+- [x] MEM-014 PostgreSQL RLS and tenant isolation (merged; automated validation unavailable)
+- [~] MEM-015 Source and source chunk models (workspace-scoped API, chunk replacement, checksum and provenance)
 - [ ] MEM-016 Memory model and evidence provenance
 - [ ] MEM-017 Entity and knowledge relations
 - [ ] MEM-018 Audit log and security integration tests
