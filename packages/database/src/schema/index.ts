@@ -176,7 +176,7 @@ export const sourceObjects = pgTable("source_objects", {
   unique("source_objects_source_unique").on(table.sourceId),
   unique("source_objects_storage_address_unique").on(table.storageProvider, table.bucketName, table.objectKey),
   index("source_objects_workspace_status_idx").on(table.workspaceId, table.status),
-  index("source_objects_expired_pending_idx").on(table.expiresAt),
+  index("source_objects_expired_pending_idx").on(table.expiresAt).where(sql`${table.status} = 'pending'`),
 ]);
 export const memories = pgTable("memories", {
   id: uuid("id").defaultRandom().primaryKey(),
