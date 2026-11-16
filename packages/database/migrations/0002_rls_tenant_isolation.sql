@@ -135,8 +135,8 @@ DECLARE
   table_name text;
 BEGIN
   FOREACH table_name IN ARRAY ARRAY[
-    'consents', 'sources', 'source_chunks', 'memories', 'memory_evidence',
-    'entities', 'memory_entities', 'entity_relations', 'audit_logs'
+    'sources', 'source_chunks', 'memories', 'memory_evidence',
+    'entities', 'memory_entities', 'entity_relations'
   ]
   LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', table_name);
@@ -149,6 +149,8 @@ BEGIN
   END LOOP;
 END $$;
 
+ALTER TABLE public.consents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.consents FORCE ROW LEVEL SECURITY;
 CREATE POLICY consents_user_scope ON public.consents
   FOR ALL
   USING (
@@ -160,9 +162,12 @@ CREATE POLICY consents_user_scope ON public.consents
     AND user_id = public.memora_current_user_id()
   );
 
-CREATE POLICY audit_logs_actor_scope ON public.audit_logs
-  FOR INSERT
-  WITH CHECK (
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.audit_logs FORCE ROW LEVEL SECURITY;
+CREATE POLICY audit_logs_select_workspace ON public.audit_logs
+  FOR SELECT USING (workspace_id = public.memora_current_workspace_id());
+CREATE POLICY audit_logs_insert_actor ON public.audit_logs
+  FOR INSERT WITH CHECK (
     workspace_id = public.memora_current_workspace_id()
     AND (actor_user_id IS NULL OR actor_user_id = public.memora_current_user_id())
   );
