@@ -113,13 +113,21 @@ describe("MEM-024 transactional source ingestion outbox", { skip: !adminUrl || !
 
     // Seed a second tenant so this test proves cross-workspace isolation rather
     // than incorrectly assuming a workspace contains only this test's source.
+    // A distinct owner is required because the schema permits only one
+    // personal workspace per user.
+    const foreignAuthId = randomUUID();
+    const foreignUser = await admin.query(
+      "INSERT INTO users (email, auth_user_id) VALUES ($1, $2) RETURNING id",
+      [`mem024-foreign-${suffix}@example.invalid`, foreignAuthId],
+    );
+    const foreignUserId = foreignUser.rows[0].id;
     const foreignWorkspace = await admin.query(
       "INSERT INTO workspaces (name, slug, owner_user_id) VALUES ('MEM-024 foreign', $1, $2) RETURNING id",
-      [`mem024-foreign-${suffix}`, userId],
+      [`mem024-foreign-${suffix}`, foreignUserId],
     );
     const foreignSource = await admin.query(
       "INSERT INTO sources (workspace_id, created_by_user_id, type, status, title) VALUES ($1, $2, 'manual', 'pending', 'Foreign tenant state') RETURNING id",
-      [foreignWorkspace.rows[0].id, userId],
+      [foreignWorkspace.rows[0].id, foreignUserId],
     );
     await admin.query("UPDATE sources SET status = 'ready' WHERE id = $1", [foreignSource.rows[0].id]);
 
@@ -137,6 +145,7 @@ describe("MEM-024 transactional source ingestion outbox", { skip: !adminUrl || !
     } finally {
       await app.end();
       await admin.query("DELETE FROM workspaces WHERE id = $1", [foreignWorkspace.rows[0].id]);
+      await admin.query("DELETE FROM users WHERE id = $1", [foreignUserId]);
     }
   });
 });
