@@ -135,7 +135,7 @@ export class WorkspaceMembershipController {
       );
       const currentActor = actorResult.rows[0];
       if (!currentActor) throw new ForbiddenException("Votre accès à cet espace a changé.");
-      const target = await client.query<{ role: WorkspaceRole }> (
+      const target = await client.query<{ role: WorkspaceRole }>(
         "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 FOR UPDATE",
         [workspaceId, memberUserId],
       );
