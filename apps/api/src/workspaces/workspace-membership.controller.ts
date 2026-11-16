@@ -72,13 +72,19 @@ export class WorkspaceMembershipController {
     const client = await authPool.connect();
     try {
       await client.query("BEGIN");
+      const actorResult = await client.query<{ role: WorkspaceRole }>(
+        "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 AND status = 'active' FOR UPDATE",
+        [workspaceId, actor.userId],
+      );
+      const currentActor = actorResult.rows[0];
+      if (!currentActor) throw new ForbiddenException("Votre accès à cet espace a changé.");
       const targetResult = await client.query<{ role: WorkspaceRole }>(
         "SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2 FOR UPDATE",
         [workspaceId, memberUserId],
       );
       const target = targetResult.rows[0];
       if (!target) throw new NotFoundException("Membre introuvable.");
-      if (!canChangeMemberRole(actor.role, target.role, parsed.data.role)) {
+      if (!canChangeMemberRole(currentActor.role, target.role, parsed.data.role)) {
         throw new ForbiddenException("Votre rôle ne permet pas de modifier ce membre.");
       }
 
