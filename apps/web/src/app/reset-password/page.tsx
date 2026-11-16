@@ -7,6 +7,7 @@ import { authClient } from "../../lib/auth-client";
 
 export default function ResetPasswordPage() {
   const [token, setToken] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -14,6 +15,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     setToken(new URLSearchParams(window.location.search).get("token"));
+    setReady(true);
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -45,7 +47,7 @@ export default function ResetPasswordPage() {
           {token
             ? <label>Nouveau mot de passe<input type="password" autoComplete="new-password" minLength={12} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
             : <label>Adresse e-mail<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>}
-          <button className="primary-button auth-submit" disabled={busy || token === null}>{busy ? "Veuillez patienter…" : token ? "Enregistrer le mot de passe" : "Envoyer le lien"}</button>
+          <button className="primary-button auth-submit" disabled={busy || !ready}>{busy ? "Veuillez patienter…" : token ? "Enregistrer le mot de passe" : "Envoyer le lien"}</button>
         </form>
         {message && <p className="auth-message" role="status">{message}</p>}
         <Link className="auth-link" href="/login">Retour à la connexion</Link>
