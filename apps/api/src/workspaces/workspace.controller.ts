@@ -73,7 +73,7 @@ async function getDomainUserId(
   return user.id;
 }
 
-const sharedWorkspaceCreateSchema = z.object({
+export const sharedWorkspaceCreateSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).nullable().optional(),
 }).strict();
