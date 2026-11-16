@@ -40,7 +40,7 @@ export const createMemoryRequestSchema = z.object({
     confidence: z.number().int().min(0).max(100).optional(),
   }).strict()).max(50).optional(),
 }).strict().refine(
-  (value) => !value.validFrom || !value.validUntil || value.validUntil >= value.validFrom,
+  (value) => !value.validFrom || !value.validUntil || Date.parse(value.validUntil) >= Date.parse(value.validFrom),
   "La fin de validité doit être postérieure au début.",
 ).refine(
   (value) => !value.evidence || new Set(value.evidence.map((item) => item.sourceChunkId + ":" + item.evidenceType)).size === value.evidence.length,
@@ -206,9 +206,12 @@ export class MemoryController {
   ) {
     const input = parseOrBadRequest(updateMemoryRequestSchema, body, "Modification de mémoire invalide.");
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
-      const current = await client.query<{ status: string }>("SELECT status FROM memories WHERE id = $1 AND workspace_id = $2 FOR UPDATE", [memoryId, workspaceId]);
+      const current = await client.query<{ status: string; valid_from: Date | null; valid_until: Date | null }>("SELECT status, valid_from, valid_until FROM memories WHERE id = $1 AND workspace_id = $2 FOR UPDATE", [memoryId, workspaceId]);
       if (!current.rows[0]) throw new NotFoundException("Mémoire introuvable.");
       if (current.rows[0].status !== "active") throw new ConflictException("Seule une mémoire active peut être modifiée.");
+      const nextValidFrom = input.validFrom === undefined ? current.rows[0].valid_from : input.validFrom ? new Date(input.validFrom) : null;
+      const nextValidUntil = input.validUntil === undefined ? current.rows[0].valid_until : input.validUntil ? new Date(input.validUntil) : null;
+      if (nextValidFrom && nextValidUntil && nextValidUntil < nextValidFrom) throw new BadRequestException("La fin de validité doit être postérieure au début.");
       const fields: string[] = [];
       const values: unknown[] = [memoryId, workspaceId];
       const add = (column: string, value: unknown) => { values.push(value); fields.push(`${column} = $${values.length}`); };
