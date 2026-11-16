@@ -2,6 +2,7 @@ import {
   check,
   index,
   integer,
+  bigint,
   jsonb,
   pgEnum,
   pgTable,
@@ -146,6 +147,29 @@ export const sourceChunks = pgTable("source_chunks", {
   index("source_chunks_workspace_source_idx").on(table.workspaceId, table.sourceId),
 ]);
 
+export const sourceObjects = pgTable("source_objects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull(),
+  sourceId: uuid("source_id").notNull(),
+  storageProvider: varchar("storage_provider", { length: 80 }).notNull(),
+  bucketName: varchar("bucket_name", { length: 160 }).notNull(),
+  objectKey: text("object_key").notNull(),
+  status: varchar("status", { length: 24 }).notNull().default("pending"),
+  contentType: varchar("content_type", { length: 160 }).notNull(),
+  byteSize: bigint("byte_size", { mode: "number" }),
+  checksumSha256: varchar("checksum_sha256", { length: 64 }),
+  etag: varchar("etag", { length: 256 }),
+  versionId: varchar("version_id", { length: 512 }),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  ...timestamps,
+}, (table) => [
+  foreignKey({ columns: [table.sourceId, table.workspaceId], foreignColumns: [sources.id, sources.workspaceId], name: "source_objects_source_workspace_fk" }).onDelete("cascade"),
+  unique("source_objects_id_workspace_unique").on(table.id, table.workspaceId),
+  unique("source_objects_source_unique").on(table.sourceId),
+  unique("source_objects_storage_address_unique").on(table.storageProvider, table.bucketName, table.objectKey),
+  index("source_objects_workspace_status_idx").on(table.workspaceId, table.status),
+]);
 export const memories = pgTable("memories", {
   id: uuid("id").defaultRandom().primaryKey(),
   workspaceId: uuid("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
