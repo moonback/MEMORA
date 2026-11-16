@@ -11,8 +11,8 @@
 - [ ] MEM-008 Health checks and smoke tests
 
 ## Identity & Memory Core
-- [ ] MEM-009 Database schema and migrations
-- [ ] MEM-010 Authentication
+- [x] MEM-009 Database schema and migrations
+- [x] MEM-010 Authentication (implementation authored; validation pending)
 - [ ] MEM-011 User profile and account settings
 - [ ] MEM-012 Personal workspace lifecycle
 - [ ] MEM-013 Workspace membership and RBAC
