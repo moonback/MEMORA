@@ -39,3 +39,12 @@ Les URL présignées expirent après cinq minutes. Elles sont des secrets tempor
 - La vérification compare la taille, le type MIME et le checksum SHA-256 renvoyés par le stockage. Le fournisseur doit exposer les checksums S3 via HeadObject (ChecksumMode ENABLED).
 - Aucun antivirus, sandbox, OCR, extraction de texte ou ingestion asynchrone n'est inclus dans MEM-020.
 - Les fichiers ne doivent pas être considérés comme sûrs simplement parce que leur checksum est valide. Le traitement et l'ouverture côté client devront appliquer des contrôles complémentaires.
+
+
+## MEM-021 — expiration et nettoyage des uploads
+
+Chaque objet pending possède un expires_at persistant. La durée par défaut est de 1 800 secondes, configurable avec OBJECT_UPLOAD_TTL_SECONDS (300 à 86 400 secondes), indépendamment des URL présignées (300 secondes). La finalisation réserve une lease en base, committe, exécute HeadObject hors transaction, puis finalise par compare-and-set. Aucun verrou PostgreSQL n'est conservé pendant l'appel S3. Le worker NestJS s'exécute au démarrage puis toutes les minutes. Il réserve des lots avec FOR UPDATE SKIP LOCKED, committe avant DeleteObject et reprend les leases expirées après crash. DeleteObject est idempotent ; en cas d'erreur, seul un code générique est conservé et la ligne reste pending pour retry. Les objets verified ne sont jamais candidats au nettoyage ; un trigger PostgreSQL interdit leur transition vers un autre état et la modification de leurs coordonnées.
+
+### Permissions et limites
+
+Limiter le rôle du bucket à PutObject, GetObject, HeadObject et DeleteObject sur le préfixe MEMORA. Le nettoyage est périodique et non temps réel. La suppression distante et la mise à jour PostgreSQL ne forment pas une transaction distribuée : les leases et l'idempotence assurent la reprise après panne. Aucun antivirus, OCR ou multipart n'est inclus.
