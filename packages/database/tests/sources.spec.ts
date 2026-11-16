@@ -82,6 +82,54 @@ describe("MEM-015 workspace-scoped sources and chunks", { skip: !adminUrl || !ap
     }
   });
 
+  it("isolates private source object coordinates to the active workspace", async () => {
+    const app = new Client({ connectionString: appUrl });
+    await app.connect();
+    try {
+      await app.query("BEGIN");
+      await app.query("SELECT set_config('app.auth_user_id', $1, true)", [authId]);
+      await app.query("SELECT set_config('app.user_id', $1, true)", [userId]);
+      await app.query("SELECT set_config('app.workspace_id', $1, true)", [workspaceId]);
+      const inserted = await app.query(
+        `INSERT INTO source_objects
+          (workspace_id, source_id, storage_provider, bucket_name, object_key, content_type)
+         VALUES ($1, $2, 's3-compatible', 'memora-private-test', $3, 'application/pdf')
+         RETURNING id, status`,
+        [workspaceId, sourceId, `objects/${suffix}/source.pdf`],
+      );
+      assert.equal(inserted.rows[0].status, "pending");
+      const visible = await app.query("SELECT object_key FROM source_objects WHERE source_id = $1", [sourceId]);
+      assert.deepEqual(visible.rows, [{ object_key: `objects/${suffix}/source.pdf` }]);
+      await app.query("SELECT set_config('app.workspace_id', $1, true)", [otherWorkspaceId]);
+      const hidden = await app.query("SELECT id FROM source_objects");
+      assert.equal(hidden.rowCount, 0);
+      await app.query("ROLLBACK");
+    } finally {
+      await app.end();
+    }
+  });
+
+  it("rejects invalid object states, oversized objects and unverified completion", async () => {
+    await assert.rejects(
+      admin.query(
+        `INSERT INTO source_objects
+          (workspace_id, source_id, storage_provider, bucket_name, object_key, status, content_type)
+         VALUES ($1, $2, 's3-compatible', 'memora-private-test', $3, 'public', 'application/pdf')`,
+        [workspaceId, sourceId, `invalid/${suffix}`],
+      ),
+      (error: { code?: string }) => error.code === "23514",
+    );
+    await assert.rejects(
+      admin.query(
+        `INSERT INTO source_objects
+          (workspace_id, source_id, storage_provider, bucket_name, object_key, status, content_type, byte_size)
+         VALUES ($1, $2, 's3-compatible', 'memora-private-test', $3, 'verified', 'application/pdf', 104857601)`,
+        [workspaceId, sourceId, `oversize/${suffix}`],
+      ),
+      (error: { code?: string }) => error.code === "23514",
+    );
+  });
+
   it("rejects chunk rows whose workspace does not match the parent source", async () => {
     const app = new Client({ connectionString: appUrl });
     await app.connect();
