@@ -28,3 +28,10 @@ export async function sendAuthEmail(message: AuthEmail): Promise<void> {
     text: message.text,
   });
 }
+
+export function queueAuthEmail(message: AuthEmail): void {
+  void sendAuthEmail(message).catch((error: unknown) => {
+    const reason = error instanceof Error ? error.message : "Unknown SMTP delivery error";
+    console.error("MEMORA authentication email delivery failed:", reason);
+  });
+}
