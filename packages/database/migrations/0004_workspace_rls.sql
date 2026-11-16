@@ -82,18 +82,40 @@ AS $$
   )
 $$;
 
+CREATE OR REPLACE FUNCTION memora_invitation_role(
+  p_workspace_id uuid,
+  p_user_id uuid,
+  p_token_hash text
+)
+RETURNS workspace_role
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+  SELECT i.role
+  FROM public.workspace_invitations i
+  JOIN public.users u ON u.id = p_user_id
+  WHERE i.workspace_id = p_workspace_id
+    AND i.token_hash = p_token_hash
+    AND lower(i.email) = lower(u.email)
+    AND i.accepted_at IS NULL
+    AND i.expires_at > now()
+  LIMIT 1
+$;
+
 REVOKE ALL ON FUNCTION memora_current_auth_user_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION memora_current_user_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION memora_current_workspace_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION memora_workspace_role(uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION memora_has_workspace_role(uuid, uuid, workspace_role[]) FROM PUBLIC;
 REVOKE ALL ON FUNCTION memora_invitation_allows_member(uuid, uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION memora_invitation_role(uuid, uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION memora_current_auth_user_id() TO memora_app;
 GRANT EXECUTE ON FUNCTION memora_current_user_id() TO memora_app;
 GRANT EXECUTE ON FUNCTION memora_current_workspace_id() TO memora_app;
 GRANT EXECUTE ON FUNCTION memora_workspace_role(uuid, uuid) TO memora_app;
 GRANT EXECUTE ON FUNCTION memora_has_workspace_role(uuid, uuid, workspace_role[]) TO memora_app;
 GRANT EXECUTE ON FUNCTION memora_invitation_allows_member(uuid, uuid, text) TO memora_app;
+GRANT EXECUTE ON FUNCTION memora_invitation_role(uuid, uuid, text) TO memora_app;
 
 -- Identity rows are visible to their owner, or to active members in the current workspace.
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -174,7 +196,7 @@ CREATE POLICY workspace_members_insert_owner_or_invited_self ON workspace_member
     OR (
       workspace_id = memora_current_workspace_id()
       AND user_id = memora_current_user_id()
-      AND memora_invitation_allows_member(
+      AND role = memora_invitation_role(
         workspace_id,
         user_id,
         nullif(current_setting('app.invitation_token_hash', true), '')
@@ -196,6 +218,14 @@ CREATE POLICY workspace_members_update_roles ON workspace_members
       )
       OR (
         user_id = memora_current_user_id()
+        AND memora_invitation_role(
+          workspace_id,
+          user_id,
+          nullif(current_setting('app.invitation_token_hash', true), '')
+        ) IS NOT NULL
+      )
+      OR (
+        user_id = memora_current_user_id()
         AND EXISTS (
           SELECT 1 FROM workspaces w
           WHERE w.id = workspace_members.workspace_id
@@ -214,6 +244,15 @@ CREATE POLICY workspace_members_update_roles ON workspace_members
       OR (
         memora_has_workspace_role(workspace_id, memora_current_user_id(), ARRAY['admin']::workspace_role[])
         AND role IN ('member', 'viewer')
+      )
+      OR (
+        user_id = memora_current_user_id()
+        AND role = memora_invitation_role(
+          workspace_id,
+          user_id,
+          nullif(current_setting('app.invitation_token_hash', true), '')
+        )
+        AND status = 'active'
       )
       OR (
         user_id = memora_current_user_id()
