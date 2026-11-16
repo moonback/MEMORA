@@ -22,7 +22,7 @@ export const createMemoryContractSchema = z.object({
   attributes: z.record(z.unknown()).optional(),
   evidence: z.array(memoryEvidenceContractSchema).max(50).optional(),
 }).strict().refine(
-  (value) => !value.validFrom || !value.validUntil || value.validUntil >= value.validFrom,
+  (value) => !value.validFrom || !value.validUntil || Date.parse(value.validUntil) >= Date.parse(value.validFrom),
   "La fin de validité doit être postérieure au début.",
 ).refine(
   (value) => !value.evidence || new Set(value.evidence.map((item) => item.sourceChunkId + ":" + item.evidenceType)).size === value.evidence.length,
