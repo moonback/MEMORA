@@ -70,20 +70,20 @@ const suite = describe("MEM-021 PostgreSQL cleanup worker with mocked S3", { ski
     });
     const worker = new ObjectUploadCleanupService(storage);
 
-    assert.equal(await worker.runCleanupBatch(), 0);
+    assert.equal(await worker.runCleanupBatch(workspaceId), 0);
     const failed = await pool.query("SELECT status, cleanup_attempts, cleanup_last_error, cleanup_lease_token FROM source_objects WHERE id = $1", [pendingId]);
     assert.equal(failed.rows[0].status, "pending");
     assert.equal(failed.rows[0].cleanup_attempts, 1);
     assert.equal(failed.rows[0].cleanup_last_error, "storage_delete_failed");
     assert.equal(failed.rows[0].cleanup_lease_token, null);
 
-    assert.equal(await worker.runCleanupBatch(), 1);
+    assert.equal(await worker.runCleanupBatch(workspaceId), 1);
     const completed = await pool.query("SELECT status, cleanup_attempts FROM source_objects WHERE id = $1", [pendingId]);
     assert.equal(completed.rows[0].status, "deleted");
     assert.equal(completed.rows[0].cleanup_attempts, 1);
     assert.equal(deleteCalls, 2);
     assert.equal(deletedKeys.length, 1);
-    assert.equal(await worker.runCleanupBatch(), 0, "a repeated cleanup cycle must be idempotent");
+    assert.equal(await worker.runCleanupBatch(workspaceId), 0, "a repeated cleanup cycle must be idempotent");
     assert.equal(deleteCalls, 2);
 
     const protectedObject = await pool.query("SELECT status FROM source_objects WHERE id = $1", [verifiedId]);

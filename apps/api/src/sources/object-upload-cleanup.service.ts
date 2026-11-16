@@ -48,7 +48,7 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
     await this.pool.end();
   }
 
-  async runCleanupBatch(): Promise<number> {
+  async runCleanupBatch(workspaceId?: string): Promise<number> {
     const client = await this.pool.connect();
     let claimed: ExpiredObject[] = [];
     try {
@@ -57,12 +57,13 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
         `SELECT id, workspace_id, bucket_name, object_key
          FROM source_objects
          WHERE status = 'pending' AND expires_at <= now()
+           AND ($2::uuid IS NULL OR workspace_id = $2)
            AND (cleanup_lease_until IS NULL OR cleanup_lease_until <= now())
            AND (verification_lease_until IS NULL OR verification_lease_until <= now())
          ORDER BY expires_at
          LIMIT $1
          FOR UPDATE SKIP LOCKED`,
-        [CLEANUP_BATCH_SIZE],
+        [CLEANUP_BATCH_SIZE, workspaceId ?? null],
       );
       for (const candidate of candidates.rows) {
         const leaseToken = randomUUID();
