@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { Reflect } from "@nestjs/core";
+import "reflect-metadata";
 import { manualCaptureSchema, ManualCaptureController } from "./manual-capture.controller.js";
 
 describe("manual capture request contract", () => {
