@@ -9,7 +9,7 @@ import { setAuthUserContext } from "./db-context.js";
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), "../../../..", ".env") });
 
-const databaseUrl = process.env.DATABASE_APP_URL;
+const databaseUrl = process.env.DATABASE_APP_URL ?? (process.env.NODE_ENV === "production" ? undefined : "postgresql://memora_app:change_me_app_locally@127.0.0.1:5432/memora");
 if (!databaseUrl) throw new Error("DATABASE_APP_URL must point to the non-owner, NOBYPASSRLS runtime database role.");
 const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
 const secret = process.env.BETTER_AUTH_SECRET ?? "memora-local-development-secret-change-before-deploy";
