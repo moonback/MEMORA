@@ -10,10 +10,12 @@ import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import { z } from "zod";
 import { authPool } from "../auth/auth.js";
+import { withWorkspaceContext } from "../database/tenant-context.js";
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 export interface WorkspaceMembershipContext {
   workspaceId: string;
+  authUserId: string;
   userId: string;
   role: WorkspaceRole;
   workspaceType: "personal" | "shared";
@@ -38,25 +40,12 @@ export class WorkspaceMembershipGuard implements CanActivate {
     if (!session || !workspaceId) throw new ForbiddenException("Contexte de session ou d’espace manquant.");
     if (!z.string().uuid().safeParse(workspaceId).success) throw new BadRequestException("Identifiant d’espace invalide.");
 
-    const result = await authPool.query<{
-      user_id: string;
-      role: WorkspaceRole;
-      archived_at: Date | null;
-      workspace_type: "personal" | "shared";
-    }>(
-      `SELECT wm.user_id, wm.role, w.archived_at, w.type AS workspace_type
-       FROM workspace_members wm
-       JOIN workspaces w ON w.id = wm.workspace_id
-       JOIN users u ON u.id = wm.user_id
-       WHERE wm.workspace_id = $1
-         AND u.auth_user_id = $2
-         AND wm.status = 'active'
-       LIMIT 1`,
-      [workspaceId, session.user.id],
+    const membership = await withWorkspaceContext(
+      authPool,
+      session.user.id,
+      workspaceId,
+      async (_client, context) => context.membership,
     );
-    const membership = result.rows[0];
-    if (!membership) throw new ForbiddenException("Vous n'êtes pas membre de cet espace.");
-    if (membership.archived_at) throw new ConflictException("Cet espace est archivé.");
 
     const allowedRoles = this.reflector.getAllAndOverride<WorkspaceRole[]>(WORKSPACE_ROLES_KEY, [
       context.getHandler(),
@@ -68,9 +57,10 @@ export class WorkspaceMembershipGuard implements CanActivate {
 
     request.workspaceMembership = {
       workspaceId,
-      userId: membership.user_id,
+      authUserId: session.user.id,
+      userId: membership.userId,
       role: membership.role,
-      workspaceType: membership.workspace_type,
+      workspaceType: membership.workspaceType,
     };
     return true;
   }
