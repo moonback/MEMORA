@@ -26,7 +26,7 @@ const suite = describe("MEMORA initial database migration", { skip: !databaseUrl
     );
     workspaceA = first.rows[0].id;
     const second = await client.query(
-      "INSERT INTO workspaces (name, slug, owner_user_id) VALUES ($1, $2, $3) RETURNING id",
+      "INSERT INTO workspaces (name, slug, type, owner_user_id) VALUES ($1, $2, 'shared', $3) RETURNING id",
       ["Schema test B", `schema-test-b-${suffix}`, userId],
     );
     workspaceB = second.rows[0].id;
