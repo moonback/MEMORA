@@ -260,7 +260,7 @@ describe(
         [exhausted.ingestionId],
       );
       assert.ok(exhaustedOutbox.rows[0]?.published_at instanceof Date, "exhausted event must not be re-enqueued");
-      assert.equal(await dispatcher.dispatchBatch(), 1, "recovered outbox event must be dispatchable again");
+      assert.equal(await dispatcher!.dispatchBatch(), 1, "recovered outbox event must be dispatchable again");
       await waitFor(
         () => readIngestion(expired.ingestionId),
         (row) => row?.status === "succeeded",
