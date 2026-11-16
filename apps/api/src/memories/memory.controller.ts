@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  InternalServerErrorException,
   NotFoundException,
   Param,
   ParseUUIDPipe,
@@ -160,6 +161,7 @@ export class MemoryController {
           JSON.stringify(input.attributes ?? {})],
       );
       const memory = result.rows[0];
+      if (!memory) throw new InternalServerErrorException("La mémoire créée n'a pas été retournée par la base de données.");
       for (const item of input.evidence ?? []) {
         await client.query(
           `INSERT INTO memory_evidence
