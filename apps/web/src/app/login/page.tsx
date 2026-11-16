@@ -19,7 +19,7 @@ export default function LoginPage() {
     setMessage("");
     try {
       const result = mode === "signup"
-        ? await authClient.signUp.email({ name, email, password, callbackURL: "/" })
+        ? await authClient.signUp.email({ name, email, password, callbackURL: `${window.location.origin}/` })
         : await authClient.signIn.email({ email, password, callbackURL: "/" });
       if (result.error) {
         setMessage(result.error.message ?? "Impossible de terminer cette opération.");
