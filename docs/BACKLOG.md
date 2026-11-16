@@ -20,4 +20,5 @@
 - [x] MEM-015 Source and source chunk models (workspace-scoped API, chunk replacement, checksum and provenance)
 - [x] MEM-016 Memory model and evidence provenance (merged via PR #31)
 - [x] MEM-017 Entity and knowledge relations (merged via PR #32)
-- [~] MEM-018 Audit log and security integration tests
+- [x] MEM-018 Audit log and security integration tests (merged via PR #34)
+- [~] MEM-019 EU object storage metadata and secure upload lifecycle
