@@ -218,6 +218,7 @@ CREATE POLICY workspace_members_update_roles ON workspace_members
       )
       OR (
         user_id = memora_current_user_id()
+        AND status <> 'active'
         AND memora_invitation_role(
           workspace_id,
           user_id,
