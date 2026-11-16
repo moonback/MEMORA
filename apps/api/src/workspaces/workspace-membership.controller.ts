@@ -17,7 +17,7 @@ import { CurrentWorkspaceMembership, RequireWorkspaceRoles } from "./workspace-m
 import { WorkspaceMembershipGuard, type WorkspaceMembershipContext, type WorkspaceRole } from "./workspace-membership.guard.js";
 import { canChangeMemberRole, canLeaveWorkspace, canRemoveMember } from "./workspace-rbac.js";
 
-const roleUpdateSchema = z.object({
+export const roleUpdateSchema = z.object({
   role: z.enum(["admin", "member", "viewer"]),
 }).strict();
 
