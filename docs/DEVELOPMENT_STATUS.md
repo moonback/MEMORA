@@ -6,26 +6,30 @@ Updated: 2026-11-16
 - Private GitHub repository: moonback/MEMORA.
 - Initial application foundation merged into `main` via PR #9.
 - API liveness/readiness and health tests merged into `main` via PR #20.
-- Current implementation branch: `feature/MEM-009-database-schema-migrations`.
+- Core PostgreSQL schema and migration runner merged via PR #21.
+- Current implementation branch: `feature/MEM-010-authentication-sessions`.
 
 ## Merged into main
 - pnpm workspace and strict TypeScript base config.
 - Next.js dashboard shell.
-- NestJS API with `GET /api/health` liveness and `GET /api/health/ready` dependency readiness.
-- Readiness tests for healthy, degraded, unconfigured and TCP probe scenarios.
-- Shared Zod domain contracts.
-- Docker Compose for PostgreSQL pgvector and Redis.
-- Product, architecture, security and roadmap documentation.
+- NestJS API with public liveness/readiness endpoints.
+- PostgreSQL/pgvector and Redis local infrastructure.
+- Core Drizzle schema and reviewed SQL migration for users, workspaces, consent, sources, memories, evidence, entities and audit logs.
+- Transactional migration runner with advisory locking and applied-migration tracking.
+- Product, architecture, security, database and roadmap documentation.
 
-## In progress: MEM-009 database schema and migrations
-- Expanded Drizzle schema for users, workspaces, memberships, invitations, consent, sources, source chunks, memories, evidence, entities, entity links, entity relations and audit logs.
-- Added reviewed initial SQL migration with pgvector extension, enums, constraints and indexes.
-- Added a transaction-based migration runner with advisory locking and applied-migration tracking.
-- Added PostgreSQL integration tests for migration tables and cross-workspace foreign-key rejection.
-- Updated CI to start a pgvector PostgreSQL service, apply migrations, and run typecheck, tests and build.
+## In progress: MEM-010 authentication and sessions
+- Integrated Better Auth with PostgreSQL persistence and database-backed sessions.
+- Added email/password signup and signin, mandatory email verification, password reset and session revocation after password reset.
+- Added SMTP delivery adapter and documented required environment variables.
+- Added a NestJS global session guard, explicit public-route decorator for health endpoints, and protected `GET /api/account/me`.
+- Added signup lifecycle provisioning for the MEMORA UUID user, personal workspace and owner membership.
+- Added web login/signup and password-reset screens.
+- Added SQL migration `0002_authentication.sql` for Better Auth identity, session, account and verification tables.
+- Configured the API as ESM because Better Auth's Node integration documents ESM as a requirement.
 
 ## Validation status
-The GitHub integration was used to author these changes; no local dependency installation or runtime execution has been performed. PR #20 was merged, but its commit had no GitHub check runs. The MEM-009 branch must pass CI before it is merged. Do not treat authored tests as passing tests.
+GitHub integration was used to author changes; no local dependency installation or runtime execution has been performed. PR #21 was merged at user request although its previous CI run failed before starting any job (`startup_failure`, zero jobs). MEM-010 has not yet been typechecked, built, or run against PostgreSQL. Do not treat authored tests as passing tests. SMTP credentials and a strong production `BETTER_AUTH_SECRET` must be configured before production use.
 
 ## Not yet implemented
-Production authentication/session lifecycle, workspace authorization and RLS policies, workspace APIs, source ingestion, memory CRUD, AI extraction and recall, external connectors, mobile and desktop clients, retention/deletion workflows, and production hardening.
+Workspace authorization and PostgreSQL RLS policies, workspace APIs, profile/account settings, source ingestion, memory CRUD, AI extraction and recall, external connectors, mobile and desktop clients, retention/deletion workflows, and production hardening.
