@@ -264,7 +264,7 @@ export default function WorkspacesPage() {
                         {invitations.length === 0 && <p className="settings-loading">Aucune invitation.</p>}
                       </div>
                     </>
-                  ) : selected.workspace.type === "personal" ? <p className="settings-footnote">L'espace personnel reste privé. Créez un espace partagé pour inviter des collaborateurs.</p> : null}
+                  ) : selected.workspace.archivedAt ? <p className="settings-footnote">Cet espace est archivé. Vous pouvez le restaurer depuis les paramètres du compte.</p> : selected.workspace.type === "personal" ? <p className="settings-footnote">L'espace personnel reste privé. Créez un espace partagé pour inviter des collaborateurs.</p> : null}
                   {selected.role !== "owner" && <button type="button" className="workspace-secondary danger leave-workspace" disabled={busy} onClick={() => void leaveWorkspace()}>Quitter cet espace</button>}
                 </>
               ) : <p className="settings-loading">Sélectionnez un espace pour consulter ses membres.</p>}
