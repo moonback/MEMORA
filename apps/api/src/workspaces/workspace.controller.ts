@@ -10,6 +10,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { z } from "zod";
+import type { Pool, PoolClient } from "pg";
 import { auth, authPool } from "../auth/auth.js";
 import { CurrentSession } from "../auth/current-session.decorator.js";
 import { ensurePersonalWorkspace } from "./personal-workspace.service.js";
@@ -59,10 +60,10 @@ function toWorkspaceDto(workspace: WorkspaceRow) {
 }
 
 async function getDomainUserId(
-  queryable: { query: (text: string, values?: unknown[]) => Promise<{ rows: Array<{ id: string }> }> },
+  queryable: Pool | PoolClient,
   authUserId: string,
 ): Promise<string> {
-  const result = await queryable.query(
+  const result = await queryable.query<{ id: string }>(
     "SELECT id FROM users WHERE auth_user_id = $1 LIMIT 1",
     [authUserId],
   );
