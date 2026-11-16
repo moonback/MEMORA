@@ -42,13 +42,12 @@ export class SourceObjectController {
     });
     const signed = await this.storage.createUploadUrl({ ...input, workspaceId, sourceId });
     const uploadTtl = getObjectUploadTtlSeconds();
-    const expiresAt = new Date(Date.now() + uploadTtl * 1000).toISOString();
 
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
-      const inserted = await client.query<{ id: string }>(
+      const inserted = await client.query<{ id: string; expires_at: Date }>(
         `INSERT INTO source_objects
           (workspace_id, source_id, storage_provider, bucket_name, object_key, status, content_type, byte_size, checksum_sha256, expires_at)
-         VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9)
+         VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, now() + ($9 * interval '1 second'))
          ON CONFLICT (source_id) DO UPDATE SET
            storage_provider = EXCLUDED.storage_provider, bucket_name = EXCLUDED.bucket_name,
            object_key = EXCLUDED.object_key, status = 'pending', content_type = EXCLUDED.content_type,
@@ -56,11 +55,11 @@ export class SourceObjectController {
            expires_at = EXCLUDED.expires_at, verification_token = NULL, verification_lease_until = NULL,
            cleanup_lease_token = NULL, cleanup_lease_until = NULL, cleanup_last_error = NULL,
            etag = NULL, version_id = NULL, uploaded_at = NULL, verified_at = NULL, updated_at = now()
-         WHERE source_objects.status IN ('failed', 'deleted') RETURNING id`,
-        [workspaceId, sourceId, signed.storageProvider, signed.bucketName, signed.objectKey, input.contentType, input.byteSize, input.checksumSha256, expiresAt],
+         WHERE source_objects.status IN ('failed', 'deleted') RETURNING id, expires_at`,
+        [workspaceId, sourceId, signed.storageProvider, signed.bucketName, signed.objectKey, input.contentType, input.byteSize, input.checksumSha256, uploadTtl],
       );
       if (!inserted.rows[0]) throw new ConflictException("Un objet est déjà associé à cette source.");
-      return { objectId: inserted.rows[0].id, uploadUrl: signed.url, expiresIn: signed.expiresIn, expiresAt, requiredHeaders: signed.requiredHeaders };
+      return { objectId: inserted.rows[0].id, uploadUrl: signed.url, expiresIn: signed.expiresIn, expiresAt: new Date(inserted.rows[0].expires_at).toISOString(), requiredHeaders: signed.requiredHeaders };
     });
   }
 
