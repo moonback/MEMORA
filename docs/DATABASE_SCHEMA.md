@@ -7,7 +7,7 @@
 - Composite foreign keys enforce that a memory, source chunk, entity and evidence reference belong to the same workspace.
 - Deletion behavior is explicit: workspace-owned data cascades with its workspace; user ownership is restricted where auditability or ownership must be preserved.
 - Consent decisions are versioned and timestamped.
-- PostgreSQL Row-Level Security is deliberately a separate security milestone (MEM-014); composite constraints are not a substitute for RLS.
+- PostgreSQL Row-Level Security is enabled and forced on private domain tables; composite constraints provide an additional integrity boundary.
 
 ## Tables
 
@@ -56,3 +56,8 @@ MEM-014 adds and forces PostgreSQL RLS on users, workspaces, memberships, invita
 RLS requires a dedicated runtime database role (`DATABASE_APP_URL`) without superuser, table-owner or `BYPASSRLS` privileges. `DATABASE_URL` remains reserved for migrations. Do not use a superuser runtime connection in production.
 
 Retention jobs and vector embeddings/indexes remain subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
+
+
+## Source capture API
+
+MEM-015 exposes authenticated workspace-scoped source metadata and chunk endpoints. Source creation stores origin type, title, original filename, MIME type, SHA-256 checksum, capture timestamp and bounded structured metadata. Sources begin in `pending`; replacing the normalized chunk set is transactional and marks the source `ready`. Chunks preserve ordinal, token count, page number, media time offsets and metadata. Archiving is soft and retains provenance. Binary upload and object storage are intentionally not part of MEM-015; see `SOURCES_API.md`.
