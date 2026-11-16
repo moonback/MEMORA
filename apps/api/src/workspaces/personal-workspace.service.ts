@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
+import { setUserContext, setWorkspaceContext } from "../auth/db-context.js";
 
 export interface PersonalWorkspaceRecord {
   id: string;
@@ -17,6 +18,7 @@ export async function ensurePersonalWorkspace(
   client: PoolClient,
   userId: string,
 ): Promise<PersonalWorkspaceRecord> {
+  await setUserContext(client, userId);
   const inserted = await client.query<PersonalWorkspaceRecord>(
     `INSERT INTO workspaces (name, slug, type, owner_user_id)
      VALUES ($1, $2, 'personal', $3)
@@ -35,6 +37,7 @@ export async function ensurePersonalWorkspace(
     workspace = existing.rows[0];
   }
   if (!workspace) throw new Error("Could not ensure the personal workspace.");
+  await setWorkspaceContext(client, workspace.id);
 
   await client.query(
     `INSERT INTO workspace_members (workspace_id, user_id, role, status, joined_at)
