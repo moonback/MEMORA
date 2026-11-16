@@ -10,13 +10,16 @@ import { WorkspaceMembershipGuard } from "./workspaces/workspace-membership.guar
 import { SourceController } from "./sources/source.controller.js";
 import { MemoryController } from "./memories/memory.controller.js";
 import { EntityController } from "./entities/entity.controller.js";
+import { SourceObjectController } from "./sources/source-object.controller.js";
+import { S3ObjectStorageService } from "./sources/object-storage.service.js";
 
 @Module({
   imports: [],
-  controllers: [HealthController, AccountController, WorkspaceController, WorkspaceMembershipController, WorkspaceInvitationController, InvitationAcceptanceController, SourceController, MemoryController, EntityController],
+  controllers: [HealthController, AccountController, WorkspaceController, WorkspaceMembershipController, WorkspaceInvitationController, InvitationAcceptanceController, SourceController, SourceObjectController, MemoryController, EntityController],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },
     WorkspaceMembershipGuard,
+    S3ObjectStorageService,
   ],
 })
 export class AppModule {}
