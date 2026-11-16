@@ -49,6 +49,10 @@ The Drizzle schema in `packages/database/src/schema/index.ts` mirrors the applic
 3. Run `pnpm db:migrate`.
 4. Verify tables and constraints in PostgreSQL before connecting application services.
 
-## Not yet enabled
+## Row-Level Security
 
-RLS policies, per-request workspace context, automated cross-tenant negative tests, retention jobs, and vector embeddings/indexes are subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
+MEM-014 adds and forces PostgreSQL RLS on users, workspaces, memberships, invitations, consents, sources, chunks, memories, evidence, entities, relations and audit logs. API requests establish transaction-local user and workspace context only after resolving the authenticated identity and verifying active membership. Automated negative tests use a restricted non-owner application role and assert cross-workspace reads, source writes and membership injection are denied. See `POSTGRESQL_RLS_SETUP.md` for role provisioning and environment configuration.
+
+RLS requires a dedicated runtime database role (`DATABASE_APP_URL`) without superuser, table-owner or `BYPASSRLS` privileges. `DATABASE_URL` remains reserved for migrations. Do not use a superuser runtime connection in production.
+
+Retention jobs and vector embeddings/indexes remain subsequent milestones. Better Auth persists credentials and sessions in `user`, `session`, `account`, and `verification`; `users.auth_user_id` links that identity to the UUID-based domain user. The `vector` extension is enabled by the initial migration, but no embedding column or vector index is created yet.
