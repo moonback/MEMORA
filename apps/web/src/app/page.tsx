@@ -20,7 +20,7 @@ export default function HomePage() {
       <a className="brand" href="#"><span className="brand-mark"><Brain size={19}/></span><span>MEMORA</span></a>
       <div className="workspace-switch"><span className="workspace-avatar">M</span><span><b>Mon espace</b><small>Espace personnel</small></span><ChevronDown size={15}/></div>
       <div className="nav-label">ESPACE</div>
-      <nav className="navigation">{sections.map(({label,icon:Icon,active})=><a key={label} className={active?"nav-item active":"nav-item"} href={label === "Personnes & projets" ? "/workspaces" : "#"}><Icon size={17}/><span>{label}</span>{label==="Mes mémoires"&&<small>0</small>}</a>)}</nav>
+      <nav className="navigation">{sections.map(({label,icon:Icon,active})=><a key={label} className={active?"nav-item active":"nav-item"} href={label === "Personnes & projets" || label === "Mes sources" ? "/workspaces" : "#"}><Icon size={17}/><span>{label}</span>{label==="Mes mémoires"&&<small>0</small>}</a>)}</nav>
       <div className="nav-label second-label">ORGANISATION</div>
       <nav className="navigation"><a className="nav-item" href="#"><Folder size={17}/><span>Collections</span></a><a className="nav-item" href="#"><Sparkles size={17}/><span>Assistant mémoire</span><span className="soon">À venir</span></a></nav>
       <div className="sidebar-bottom">
@@ -32,7 +32,7 @@ export default function HomePage() {
     <section className="main-panel">
       <header className="topbar"><div className="breadcrumb">Mon espace <span>/</span> <b>Vue d'ensemble</b></div><div className="top-actions"><button className="icon-button" aria-label="Notifications"><Bell size={18}/></button><span className="avatar-small">M</span><LogoutButton /></div></header>
       <div className="content">
-        <div className="welcome-row"><div><div className="eyebrow">VOTRE ESPACE PERSONNEL</div><h1>Bonjour, bienvenue dans <span>votre mémoire.</span></h1><p>Un endroit privé pour retrouver ce qui compte, quand vous en avez besoin.</p></div><button className="primary-button"><Plus size={17}/> Ajouter une information</button></div>
+        <div className="welcome-row"><div><div className="eyebrow">VOTRE ESPACE PERSONNEL</div><h1>Bonjour, bienvenue dans <span>votre mémoire.</span></h1><p>Un endroit privé pour retrouver ce qui compte, quand vous en avez besoin.</p></div><a className="primary-button" href="/workspaces"><Plus size={17}/> Ajouter une information</a></div>
         <div className="search-panel"><div className="search-icon"><Search size={20}/></div><div className="search-copy"><b>Que souhaitez-vous retrouver ?</b><span>Recherchez une personne, une idée, une décision ou un souvenir…</span></div><kbd>⌘ K</kbd></div>
         <div className="stats-grid">
           <article className="stat-card"><div className="stat-head"><span>Mémoires enregistrées</span><span className="stat-icon lavender"><Brain size={17}/></span></div><strong>0</strong><small>Votre mémoire se construit avec vous</small></article>
@@ -41,8 +41,8 @@ export default function HomePage() {
         </div>
         <div className="section-heading"><div><h2>Commencez simplement</h2><p>Choisissez ce que vous souhaitez confier à MEMORA.</p></div><span className="private-label"><ShieldCheck size={14}/> Vous gardez le contrôle</span></div>
         <div className="action-grid">
-          <article className="action-card featured"><span className="action-icon"><UploadCloud size={20}/></span><div><h3>Importer un document</h3><p>PDF, Word, texte ou image. Vous choisissez ce qui entre dans votre mémoire.</p></div><button aria-label="Importer un document"><ArrowUpRight size={17}/></button></article>
-          <article className="action-card"><span className="action-icon note"><Plus size={20}/></span><div><h3>Écrire une note</h3><p>Ajoutez une idée, une information ou un souvenir important.</p></div><button aria-label="Créer une note"><ArrowUpRight size={17}/></button></article>
+          <article className="action-card featured"><span className="action-icon"><UploadCloud size={20}/></span><div><h3>Importer un document</h3><p>PDF, Word, texte ou image. Vous choisissez ce qui entre dans votre mémoire.</p></div><a href="/workspaces" aria-label="Importer un document"><ArrowUpRight size={17}/></a></article>
+          <article className="action-card"><span className="action-icon note"><Plus size={20}/></span><div><h3>Écrire une note</h3><p>Ajoutez une idée, une information ou un souvenir important.</p></div><a href="/workspaces" aria-label="Créer une note"><ArrowUpRight size={17}/></a></article>
         </div>
         <div className="section-heading suggestions-heading"><div><h2>Ce que MEMORA vous aidera à faire</h2><p>Une mémoire utile, contextualisée et vérifiable.</p></div></div>
         <div className="suggestion-grid">{suggestions.map(({title,detail,icon:Icon})=><article className="suggestion-card" key={title}><Icon size={18}/><div><b>{title}</b><small>{detail}</small></div><ArrowUpRight size={15}/></article>)}</div>
