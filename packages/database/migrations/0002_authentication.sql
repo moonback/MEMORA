@@ -2,8 +2,7 @@
 -- Auth identities remain separate from the UUID-based MEMORA domain user IDs.
 
 ALTER TABLE users ADD COLUMN auth_user_id varchar(64);
-CREATE UNIQUE INDEX users_auth_user_id_unique ON users(auth_user_id)
-  WHERE auth_user_id IS NOT NULL;
+CREATE UNIQUE INDEX users_auth_user_id_unique ON users(auth_user_id);
 
 CREATE TABLE "user" (
   id text PRIMARY KEY,
