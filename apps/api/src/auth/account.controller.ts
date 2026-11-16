@@ -74,6 +74,8 @@ export class AccountController {
       [profile.id],
     );
 
+    const personalWorkspace = workspaceResult.rows[0];
+
     return {
       user: {
         id: session.user.id,
@@ -87,16 +89,16 @@ export class AccountController {
         locale: profile.locale,
         timeZone: profile.time_zone,
       },
-      workspace: workspaceResult.rows[0] ? {
-        id: workspaceResult.rows[0].id,
-        name: workspaceResult.rows[0].name,
-        slug: workspaceResult.rows[0].slug,
-        type: workspaceResult.rows[0].type,
-        description: workspaceResult.rows[0].description,
-        metadata: workspaceResult.rows[0].metadata,
-        archivedAt: workspaceResult.rows[0].archived_at,
-        createdAt: workspaceResult.rows[0].created_at,
-        updatedAt: workspaceResult.rows[0].updated_at,
+      workspace: personalWorkspace ? {
+        id: personalWorkspace.id,
+        name: personalWorkspace.name,
+        slug: personalWorkspace.slug,
+        type: personalWorkspace.type,
+        description: personalWorkspace.description,
+        metadata: personalWorkspace.metadata,
+        archivedAt: personalWorkspace.archived_at,
+        createdAt: personalWorkspace.created_at,
+        updatedAt: personalWorkspace.updated_at,
       } : null,
       session: {
         id: session.session.id,
