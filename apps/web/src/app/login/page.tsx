@@ -27,7 +27,7 @@ export default function LoginPage() {
         setMessage("Compte créé. Consultez votre boîte e-mail pour confirmer votre adresse avant de vous connecter.");
         setMode("signin");
       } else {
-        window.location.assign("/");
+        window.location.assign(callbackURL);
       }
     } catch {
       setMessage("Le service d’authentification est momentanément indisponible.");
