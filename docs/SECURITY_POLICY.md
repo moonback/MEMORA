@@ -9,6 +9,8 @@
 - Apply workspace isolation to every private record.
 - Use PostgreSQL RLS as defense in depth.
 - Scope database context per transaction; never trust an unverified workspace ID from a client.
-- Do not log secrets or full private content.
+- Do not log secrets, credentials, tokens, source text, memory content, or full private payloads.
+- Audit events are inserted transactionally for source, memory, entity and entity-relation INSERT/UPDATE operations. Audit metadata contains only safe structural information.
+- Audit events are workspace-scoped and append-only; direct UPDATE/DELETE is rejected. Referential cascades are retained for workspace/account erasure and must be considered in retention policy.
 - Preserve source provenance and support user-controlled export and deletion.
 - Production deployment must use TLS, managed secrets, backups and EU data residency controls.
