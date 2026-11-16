@@ -74,17 +74,21 @@ const suite = describe("MEM-014 PostgreSQL row-level tenant isolation", { skip: 
       const members = await app.query("SELECT user_id FROM workspace_members");
       assert.deepEqual(members.rows.map((row) => row.user_id), [userA]);
 
+      await app.query("SAVEPOINT before_cross_tenant_source_insert");
       const crossTenantInsert = await app.query(
         "INSERT INTO sources (workspace_id, created_by_user_id, type, title) VALUES ($1, $2, 'manual', 'forbidden')",
         [workspaceB, userA],
       ).then(() => null, (error: { code?: string }) => error);
       assert.equal(crossTenantInsert?.code, "42501");
+      await app.query("ROLLBACK TO SAVEPOINT before_cross_tenant_source_insert");
+      await app.query("SAVEPOINT before_cross_tenant_membership_insert");
 
       const crossTenantMembership = await app.query(
         "INSERT INTO workspace_members (workspace_id, user_id, role, status) VALUES ($1, $2, 'member', 'active')",
         [workspaceB, userA],
       ).then(() => null, (error: { code?: string }) => error);
       assert.equal(crossTenantMembership?.code, "42501");
+      await app.query("ROLLBACK TO SAVEPOINT before_cross_tenant_membership_insert");
       await app.query("ROLLBACK");
     } finally {
       await app.end();
