@@ -16,8 +16,8 @@ import {
   SOURCE_INGESTION_QUEUE,
 } from "./source-ingestion-queue.js";
 
-const databaseUrl = process.env.DATABASE_SYSTEM_URL ?? process.env.DATABASE_URL;
-const redisUrl = process.env.REDIS_URL;
+const databaseUrl = process.env.MEMORA_INGESTION_TEST_DATABASE_URL;
+const redisUrl = process.env.MEMORA_INGESTION_TEST_REDIS_URL;
 
 const waitFor = async <T>(
   read: () => Promise<T>,
@@ -41,7 +41,16 @@ describe(
   () => {
     const suffix = randomUUID();
     const admin = new Pool({ connectionString: databaseUrl, max: 5 });
-    const queue = new Queue(SOURCE_INGESTION_QUEUE, { connection: redisConnectionOptions() });
+    let queue: Queue | undefined;
+    const previousEnv = {
+      databaseSystemUrl: process.env.DATABASE_SYSTEM_URL,
+      redisUrl: process.env.REDIS_URL,
+      workerLease: process.env.INGESTION_WORKER_LEASE_SECONDS,
+      heartbeat: process.env.INGESTION_WORKER_HEARTBEAT_MS,
+      recoveryPoll: process.env.INGESTION_RECOVERY_POLL_MS,
+      outboxLease: process.env.INGESTION_OUTBOX_LEASE_SECONDS,
+      maxAttempts: process.env.INGESTION_MAX_ATTEMPTS,
+    };
     const permanentIds = new Set<string>();
     const transientIds = new Set<string>();
     const processorCalls = new Map<string, number>();
@@ -119,6 +128,9 @@ describe(
         [workspaceId, userId],
       );
 
+      process.env.DATABASE_SYSTEM_URL = databaseUrl!;
+      process.env.REDIS_URL = redisUrl!;
+      queue = new Queue(SOURCE_INGESTION_QUEUE, { connection: redisConnectionOptions() });
       process.env.INGESTION_WORKER_LEASE_SECONDS = "15";
       process.env.INGESTION_WORKER_HEARTBEAT_MS = "1000";
       process.env.INGESTION_RECOVERY_POLL_MS = "300000";
@@ -135,18 +147,27 @@ describe(
       await dispatcher?.onModuleDestroy();
       await secondDispatcher?.onModuleDestroy();
       for (const ingestionId of ingestionIds) {
-        const job = await queue.getJob(ingestionJobId(ingestionId));
+        const job = await queue?.getJob(ingestionJobId(ingestionId));
         if (job) await job.remove().catch(() => undefined);
       }
-      await queue.close();
+      await queue?.close();
       if (workspaceId) await admin.query("DELETE FROM public.workspaces WHERE id = $1", [workspaceId]);
       if (userId) await admin.query("DELETE FROM public.users WHERE id = $1", [userId]);
       await admin.end();
-      delete process.env.INGESTION_WORKER_LEASE_SECONDS;
-      delete process.env.INGESTION_WORKER_HEARTBEAT_MS;
-      delete process.env.INGESTION_RECOVERY_POLL_MS;
-      delete process.env.INGESTION_OUTBOX_LEASE_SECONDS;
-      delete process.env.INGESTION_MAX_ATTEMPTS;
+      if (previousEnv.databaseSystemUrl === undefined) delete process.env.DATABASE_SYSTEM_URL;
+      else process.env.DATABASE_SYSTEM_URL = previousEnv.databaseSystemUrl;
+      if (previousEnv.redisUrl === undefined) delete process.env.REDIS_URL;
+      else process.env.REDIS_URL = previousEnv.redisUrl;
+      if (previousEnv.workerLease === undefined) delete process.env.INGESTION_WORKER_LEASE_SECONDS;
+      else process.env.INGESTION_WORKER_LEASE_SECONDS = previousEnv.workerLease;
+      if (previousEnv.heartbeat === undefined) delete process.env.INGESTION_WORKER_HEARTBEAT_MS;
+      else process.env.INGESTION_WORKER_HEARTBEAT_MS = previousEnv.heartbeat;
+      if (previousEnv.recoveryPoll === undefined) delete process.env.INGESTION_RECOVERY_POLL_MS;
+      else process.env.INGESTION_RECOVERY_POLL_MS = previousEnv.recoveryPoll;
+      if (previousEnv.outboxLease === undefined) delete process.env.INGESTION_OUTBOX_LEASE_SECONDS;
+      else process.env.INGESTION_OUTBOX_LEASE_SECONDS = previousEnv.outboxLease;
+      if (previousEnv.maxAttempts === undefined) delete process.env.INGESTION_MAX_ATTEMPTS;
+      else process.env.INGESTION_MAX_ATTEMPTS = previousEnv.maxAttempts;
     });
 
     it("dispatches real outbox rows, processes BullMQ jobs, retries transient failures and persists permanent failures", async () => {
@@ -204,6 +225,7 @@ describe(
       );
 
       const expired = await createReadySource("MEM-024 expired worker lease");
+      const exhausted = await createReadySource("MEM-024 exhausted worker lease");
       await admin.query(
         `UPDATE public.source_ingestions
          SET status = 'processing', attempts = 1, lease_token = $2,
@@ -212,19 +234,34 @@ describe(
         [expired.ingestionId, randomUUID()],
       );
       await admin.query(
-        "UPDATE public.source_ingestion_outbox SET published_at = now() WHERE ingestion_id = $1",
-        [expired.ingestionId],
+        `UPDATE public.source_ingestions
+         SET status = 'processing', attempts = max_attempts, lease_token = $2,
+             lease_until = now() - interval '1 second', heartbeat_at = now()
+         WHERE id = $1`,
+        [exhausted.ingestionId, randomUUID()],
       );
-      assert.equal(await worker.recoverExpiredLeases(), 1, "worker must recover the expired database lease");
+      await admin.query(
+        "UPDATE public.source_ingestion_outbox SET published_at = now() WHERE ingestion_id = ANY($1::uuid[])",
+        [[expired.ingestionId, exhausted.ingestionId]],
+      );
+      assert.equal(await worker.recoverExpiredLeases(), 1, "worker must requeue the expired lease but not count exhausted rows");
       const recovered = await readIngestion(expired.ingestionId);
       assert.equal(recovered?.status, "queued");
       assert.equal(recovered?.last_error_code, "worker_lease_expired");
+      const exhaustedResult = await readIngestion(exhausted.ingestionId);
+      assert.equal(exhaustedResult?.status, "failed", "expired ingestion at max_attempts must become terminal");
+      assert.equal(exhaustedResult?.last_error_code, "worker_lease_expired");
       const recoveredOutbox = await admin.query<{ published_at: Date | null; lease_token: string | null }>(
         "SELECT published_at, lease_token FROM public.source_ingestion_outbox WHERE ingestion_id = $1",
         [expired.ingestionId],
       );
       assert.equal(recoveredOutbox.rows[0]?.published_at, null);
       assert.equal(recoveredOutbox.rows[0]?.lease_token, null);
+      const exhaustedOutbox = await admin.query<{ published_at: Date | null }>(
+        "SELECT published_at FROM public.source_ingestion_outbox WHERE ingestion_id = $1",
+        [exhausted.ingestionId],
+      );
+      assert.ok(exhaustedOutbox.rows[0]?.published_at instanceof Date, "exhausted event must not be re-enqueued");
       assert.equal(await dispatcher.dispatchBatch(), 1, "recovered outbox event must be dispatchable again");
       await waitFor(
         () => readIngestion(expired.ingestionId),
