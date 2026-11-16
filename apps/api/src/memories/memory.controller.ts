@@ -92,6 +92,7 @@ function parseOrBadRequest<T>(schema: z.ZodType<T>, value: unknown, message: str
   return parsed.data;
 }
 
+type MemoryDbRow = { id: string; status?: string; [key: string]: unknown };
 const memoryColumns = `id, workspace_id, created_by_user_id, type, status, content, summary,
   confidence, occurred_at, valid_from, valid_until, supersedes_memory_id, attributes,
   created_at, updated_at`;
@@ -114,8 +115,8 @@ export class MemoryController {
         clauses.push(`type = $${values.length}`);
       }
       if (filters.q) {
-        values.push(`%${filters.q.replace(/[\\%_]/g, "\\$&")}%`);
-        clauses.push(`(content ILIKE $${values.length} ESCAPE '\\\\' OR summary ILIKE $${values.length} ESCAPE '\\\\')`);
+        values.push(`%${filters.q}%`);
+        clauses.push(`(content ILIKE $${values.length} OR summary ILIKE $${values.length})`);
       }
       values.push(filters.limit);
       const limitIndex = values.length;
@@ -178,7 +179,7 @@ export class MemoryController {
     @CurrentWorkspaceMembership() actor: WorkspaceMembershipContext,
   ) {
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
-      const result = await client.query(`SELECT ${memoryColumns} FROM memories WHERE id = $1 AND workspace_id = $2`, [memoryId, workspaceId]);
+      const result = await client.query<MemoryDbRow>(`SELECT ${memoryColumns} FROM memories WHERE id = $1 AND workspace_id = $2`, [memoryId, workspaceId]);
       const memory = result.rows[0];
       if (!memory) throw new NotFoundException("Mémoire introuvable.");
       const evidence = await client.query(
@@ -205,7 +206,7 @@ export class MemoryController {
   ) {
     const input = parseOrBadRequest(updateMemoryRequestSchema, body, "Modification de mémoire invalide.");
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
-      const current = await client.query("SELECT status FROM memories WHERE id = $1 AND workspace_id = $2 FOR UPDATE", [memoryId, workspaceId]);
+      const current = await client.query<{ status: string }>("SELECT status FROM memories WHERE id = $1 AND workspace_id = $2 FOR UPDATE", [memoryId, workspaceId]);
       if (!current.rows[0]) throw new NotFoundException("Mémoire introuvable.");
       if (current.rows[0].status !== "active") throw new ConflictException("Seule une mémoire active peut être modifiée.");
       const fields: string[] = [];
@@ -234,7 +235,7 @@ export class MemoryController {
   ) {
     const input = parseOrBadRequest(createMemoryEvidenceSchema, body, "Preuve invalide.");
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client) => {
-      const memory = await client.query("SELECT id, status FROM memories WHERE id = $1 AND workspace_id = $2", [memoryId, workspaceId]);
+      const memory = await client.query<{ id: string; status: string }>("SELECT id, status FROM memories WHERE id = $1 AND workspace_id = $2", [memoryId, workspaceId]);
       if (!memory.rows[0]) throw new NotFoundException("Mémoire introuvable.");
       if (memory.rows[0].status !== "active") throw new ConflictException("Une preuve ne peut être ajoutée qu'à une mémoire active.");
       const chunk = await client.query("SELECT id FROM source_chunks WHERE id = $1 AND workspace_id = $2", [input.sourceChunkId, workspaceId]);
@@ -279,13 +280,13 @@ export class MemoryController {
   ) {
     const input = parseOrBadRequest(supersedeMemorySchema, body, "Nouvelle version de mémoire invalide.");
     return withWorkspaceContext(authPool, actor.authUserId, workspaceId, async (client, { user }) => {
-      const previous = await client.query(
+      const previous = await client.query<{ id: string; status: string }>(
         "SELECT id, status FROM memories WHERE id = $1 AND workspace_id = $2 FOR UPDATE",
         [memoryId, workspaceId],
       );
       if (!previous.rows[0]) throw new NotFoundException("Mémoire à remplacer introuvable.");
       if (previous.rows[0].status !== "active") throw new ConflictException("Seule une mémoire active peut être remplacée.");
-      const inserted = await client.query(
+      const inserted = await client.query<MemoryDbRow>(
         `INSERT INTO memories
           (workspace_id, created_by_user_id, type, status, content, summary, confidence,
            occurred_at, valid_from, valid_until, supersedes_memory_id, attributes)
