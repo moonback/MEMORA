@@ -12,6 +12,8 @@ A partial unique index on `workspaces.owner_user_id WHERE type = 'personal'` gua
 - `archived_at`: nullable timestamp; non-null means archived.
 
 ## API routes
+- `GET /api/workspaces`: list active personal and shared workspace memberships.
+- `POST /api/workspaces`: create a shared workspace with the caller as owner.
 - `GET /api/workspaces/personal`: retrieve the caller's personal workspace.
 - `POST /api/workspaces/personal/ensure`: idempotently create/repair the personal workspace and owner membership.
 - `PATCH /api/workspaces/personal`: update name, description and appearance metadata.
@@ -22,6 +24,8 @@ All routes require a valid Better Auth session. The server derives the domain us
 
 ## Archive semantics
 Archive is reversible and non-destructive. It sets `archived_at` and retains the workspace and all related data. Restoring clears the timestamp. A workspace must be restored before its metadata can be edited. Hard deletion is intentionally not provided.
+
+Shared workspaces support invitations and owner/admin/member/viewer roles; see `WORKSPACE_RBAC.md` for the permission matrix and invitation flow.
 
 ## Security boundary
 MEM-012 does not implement shared workspace membership administration or general workspace RBAC. Those remain MEM-013. PostgreSQL RLS and per-request tenant context remain MEM-014. Future workspace data endpoints must reject archived workspaces and enforce membership/RLS independently.
