@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [develop, main]
   push:
-    branches: [develop, main, "feature/MEM-024b-bullmq-outbox-worker"]
+    branches: [develop, main]
 
 jobs:
   quality:
