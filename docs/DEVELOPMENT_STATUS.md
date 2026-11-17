@@ -36,10 +36,10 @@ Updated: 2026-11-17
 
 ## In progress: MEM-025 text extraction and normalization
 
-- Branch `feature/MEM-025-text-extraction-normalization` (uncommitted working tree on top of `e6382f1`).
+- Branch `feature/MEM-025-text-extraction-normalization` (commit `679ff8c` on top of `e6382f1`, not pushed by MEM-025 tooling).
 - `SourceTextExtractionProcessor` replaces the unconfigured processor: verified TXT/Markdown objects are read through `readObject` (size + SHA-256), strictly decoded as UTF-8, normalized (NFC, LF, control characters, blank lines) and chunked deterministically (≤ 2,000 chars, paragraph-aware, no overlap).
 - Processor runs on the restricted `memora_app` pool with transaction-local `app.workspace_id`; RLS is enforced. The worker's own `DATABASE_SYSTEM_URL` fallback is a superuser locally (documented follow-up).
-- Additive migration `0012_source_chunk_versions.sql`: `is_current` + partial unique index. Chunk replacement (processor and `PUT …/chunks`) retires instead of deleting; historical evidence stays readable. Not applied to the shared `memora` database.
+- Additive migration `0012_source_chunk_versions.sql`: `is_current` + partial unique index. Chunk replacement (processor and `PUT …/chunks`) retires instead of deleting; historical evidence stays readable. Applied to the local `memora` database on 2026-11-17 after a pg_dump backup; not yet applied elsewhere.
 - Local validation on isolated `memora_mem025_test` / `memora_ingestion_test`: API 97/97 and PostgreSQL 35/35 with zero failures/skips (including MEM-024 Redis/BullMQ integration and 10 new MEM-025 integration tests); typecheck, lint and build passed.
 - Remaining: apply 0012 after review, PDF parser selection, dedicated least-privilege worker role. See [TEXT_EXTRACTION.md](TEXT_EXTRACTION.md).
 

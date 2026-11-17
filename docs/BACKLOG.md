@@ -31,6 +31,6 @@
 - [~] MEM-024 Durable ingestion state, transactional outbox and tenant-visible status (PR #44 merged); BullMQ dispatcher/worker follow-up #45 in progress
 
 ## Intelligence & Recall
-- [~] MEM-025 Text extraction and normalization pipeline (TXT/Markdown, versioned chunks; branch `feature/MEM-025-text-extraction-normalization`, not committed; PDF pending)
+- [~] MEM-025 Text extraction and normalization pipeline (TXT/Markdown, versioned chunks; branch `feature/MEM-025-text-extraction-normalization`; PDF pending)
 - [ ] MEM-026 AI memory extraction with evidence references
 - [ ] MEM-027 Hybrid search and grounded recall
