@@ -189,11 +189,26 @@ describe(
         (row) => row?.status === "succeeded",
         "successful ingestion persistence",
       );
-      const permanentResult = await waitFor(
-        () => readIngestion(permanent.ingestionId),
-        (row) => row?.status === "failed",
-        "permanent ingestion failure persistence",
-      );
+      let permanentResult;
+
+      try {
+        permanentResult = await waitFor(
+          () => readIngestion(permanent.ingestionId),
+          (row) => row?.status === "failed",
+          "permanent ingestion failure persistence",
+        );
+      } catch (error) {
+        const job = await queue!.getJob(ingestionJobId(permanent.ingestionId));
+
+        console.error("MEM-024 permanent job diagnostics", {
+          jobState: job ? await job.getState() : "missing",
+          attemptsMade: job?.attemptsMade ?? null,
+          failedReason: job?.failedReason ?? null,
+          stacktraceCount: job?.stacktrace?.length ?? 0,
+        });
+
+        throw error;
+      }
       assert.equal(permanentResult?.last_error_code, "unsupported_source");
 
       await waitFor(
