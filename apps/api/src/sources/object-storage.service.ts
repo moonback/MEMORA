@@ -1,5 +1,5 @@
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import {
   DeleteObjectCommand, HeadObjectCommand, GetObjectCommand, PutObjectCommand, S3Client,
 } from "@aws-sdk/client-s3";
@@ -96,6 +96,90 @@ export class S3ObjectStorageService {
     }
     return { byteSize: result.ContentLength, contentType: result.ContentType, checksumSha256: input.expectedChecksumSha256.toLowerCase(),
       etag: result.ETag ?? null, versionId: result.VersionId ?? null };
+  }
+
+  async readObject(input: {
+    bucketName: string;
+    objectKey: string;
+    expectedByteSize: number;
+    expectedChecksumSha256: string;
+  }): Promise<Buffer> {
+    if (
+      !Number.isSafeInteger(input.expectedByteSize) ||
+      input.expectedByteSize < 1 ||
+      input.expectedByteSize > MAX_SOURCE_OBJECT_BYTES
+    ) {
+      throw new Error("source_object_size_invalid");
+    }
+
+    if (!/^[a-fA-F0-9]{64}$/.test(input.expectedChecksumSha256)) {
+      throw new Error("source_object_checksum_invalid");
+    }
+
+    if (!input.bucketName || !input.objectKey) {
+      throw new Error("source_object_location_invalid");
+    }
+
+    const { client } = this.getConfiguration();
+
+    const result = await client.send(
+      new GetObjectCommand({
+        Bucket: input.bucketName,
+        Key: input.objectKey,
+        ChecksumMode: "ENABLED",
+      }),
+    );
+
+    const body = result.Body as unknown as
+      | (AsyncIterable<Uint8Array> & { destroy?: () => void })
+      | undefined;
+
+    if (!body || typeof body[Symbol.asyncIterator] !== "function") {
+      throw new Error("source_object_body_unavailable");
+    }
+
+    if (
+      result.ContentLength !== undefined &&
+      result.ContentLength !== input.expectedByteSize
+    ) {
+      body.destroy?.();
+      throw new Error("source_object_size_mismatch");
+    }
+
+    const hash = createHash("sha256");
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+
+    try {
+      for await (const chunk of body) {
+        if (!(chunk instanceof Uint8Array)) {
+          throw new Error("source_object_invalid_stream_chunk");
+        }
+
+        if (totalBytes + chunk.byteLength > input.expectedByteSize) {
+          throw new Error("source_object_size_limit_exceeded");
+        }
+
+        const buffer = Buffer.from(chunk);
+        chunks.push(buffer);
+        hash.update(buffer);
+        totalBytes += buffer.byteLength;
+      }
+    } catch (error) {
+      body.destroy?.();
+      throw error;
+    }
+
+    if (totalBytes !== input.expectedByteSize) {
+      throw new Error("source_object_size_mismatch");
+    }
+
+    const actualChecksum = hash.digest("hex");
+    if (actualChecksum !== input.expectedChecksumSha256.toLowerCase()) {
+      throw new Error("source_object_checksum_mismatch");
+    }
+
+    return Buffer.concat(chunks, totalBytes);
   }
 
   async createDownloadUrl(input: { bucketName: string; objectKey: string; contentType: string }) {

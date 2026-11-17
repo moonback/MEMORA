@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { createHash } from "node:crypto";
+import { Readable } from "node:stream";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import {
   checksumHexToBase64, getObjectUploadTtlSeconds, MAX_SOURCE_OBJECT_BYTES,
@@ -92,5 +94,171 @@ describe("MEM-021 S3 lifecycle adapter", () => {
     client.send = (async () => { throw new Error("private provider diagnostic"); }) as typeof client.send;
     service.configureClientForTests(client, config);
     await assert.rejects(service.deleteObject({ bucketName: config.bucket, objectKey: "private/key" }));
+  });
+
+  it("reads an S3 object and verifies its size and SHA-256", async () => {
+    const service = new S3ObjectStorageService();
+    const payload = Buffer.from("MEMORA secure ingestion test");
+    const checksum = createHash("sha256").update(payload).digest("hex");
+
+    const client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+
+    client.send = (async (command: unknown) => {
+      assert.ok(command instanceof GetObjectCommand);
+      return {
+        Body: Readable.from([
+          payload.subarray(0, 10),
+          payload.subarray(10),
+        ]),
+        ContentLength: payload.length,
+      };
+    }) as typeof client.send;
+
+    service.configureClientForTests(client, config);
+
+    const result = await service.readObject({
+      bucketName: config.bucket,
+      objectKey: "workspace/source/object",
+      expectedByteSize: payload.length,
+      expectedChecksumSha256: checksum,
+    });
+
+    assert.deepEqual(result, payload);
+  });
+
+  it("rejects an S3 stream exceeding the expected size", async () => {
+    const service = new S3ObjectStorageService();
+    const client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+
+    client.send = (async () => ({
+      Body: Readable.from([
+        Buffer.from("1234"),
+        Buffer.from("5678"),
+      ]),
+      ContentLength: 4,
+    })) as typeof client.send;
+
+    service.configureClientForTests(client, config);
+
+    await assert.rejects(
+      service.readObject({
+        bucketName: config.bucket,
+        objectKey: "private/key",
+        expectedByteSize: 4,
+        expectedChecksumSha256: "a".repeat(64),
+      }),
+      /source_object_size_limit_exceeded/,
+    );
+  });
+
+  it("rejects an interrupted S3 stream", async () => {
+    const service = new S3ObjectStorageService();
+    const client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+
+    async function* interruptedStream() {
+      yield Buffer.from("partial");
+      throw new Error("stream interrupted");
+    }
+
+    client.send = (async () => ({
+      Body: Readable.from(interruptedStream()),
+      ContentLength: 20,
+    })) as typeof client.send;
+
+    service.configureClientForTests(client, config);
+
+    await assert.rejects(
+      service.readObject({
+        bucketName: config.bucket,
+        objectKey: "private/key",
+        expectedByteSize: 20,
+        expectedChecksumSha256: "a".repeat(64),
+      }),
+      /stream interrupted/,
+    );
+  });
+
+  it("rejects an object with an incorrect SHA-256", async () => {
+    const service = new S3ObjectStorageService();
+    const payload = Buffer.from("incorrect checksum");
+
+    const client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+
+    client.send = (async () => ({
+      Body: Readable.from([payload]),
+      ContentLength: payload.length,
+    })) as typeof client.send;
+
+    service.configureClientForTests(client, config);
+
+    await assert.rejects(
+      service.readObject({
+        bucketName: config.bucket,
+        objectKey: "private/key",
+        expectedByteSize: payload.length,
+        expectedChecksumSha256: "a".repeat(64),
+      }),
+      /source_object_checksum_mismatch/,
+    );
+  });
+
+  it("rejects an invalid expected object size before contacting S3", async () => {
+    const service = new S3ObjectStorageService();
+    const client = new S3Client({
+      endpoint: config.endpoint,
+      region: config.region,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
+
+    let called = false;
+    client.send = (async () => {
+      called = true;
+      return {};
+    }) as typeof client.send;
+
+    service.configureClientForTests(client, config);
+
+    await assert.rejects(
+      service.readObject({
+        bucketName: config.bucket,
+        objectKey: "private/key",
+        expectedByteSize: MAX_SOURCE_OBJECT_BYTES + 1,
+        expectedChecksumSha256: "a".repeat(64),
+      }),
+      /source_object_size_invalid/,
+    );
+
+    assert.equal(called, false);
   });
 });
