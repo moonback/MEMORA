@@ -7,14 +7,13 @@ import { auth } from "./auth/auth.js";
 
 async function bootstrap() {
   const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:3000";
-  const app = await NestFactory.create(AppModule, {
-    bodyParser: false,
-    cors: {
-      origin: webOrigin,
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-    },
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  // Must be registered before the raw Better Auth route, otherwise its preflight gets no CORS headers.
+  app.enableCors({
+    origin: webOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
   app.getHttpAdapter().getInstance().all("/api/auth/*splat", toNodeHandler(auth));

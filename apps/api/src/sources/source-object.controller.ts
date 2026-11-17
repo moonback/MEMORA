@@ -1,6 +1,6 @@
 import {
   BadGatewayException, BadRequestException, ConflictException, Controller, Get,
-  NotFoundException, Param, ParseUUIDPipe, Post, Body, UseGuards,
+  NotFoundException, Param, ParseUUIDPipe, Post, Body, UseGuards, Inject,
 } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -19,7 +19,7 @@ const uploadBodySchema = z.object({
 @Controller("workspaces/:workspaceId/sources/:sourceId/object")
 @UseGuards(WorkspaceMembershipGuard)
 export class SourceObjectController {
-  constructor(private readonly storage: S3ObjectStorageService) {}
+  constructor(@Inject(S3ObjectStorageService) private readonly storage: S3ObjectStorageService) {}
 
   @Post("upload-url")
   @RequireWorkspaceRoles("owner", "admin", "member")

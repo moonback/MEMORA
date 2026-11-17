@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { S3ObjectStorageService } from "./object-storage.service.js";
@@ -26,7 +26,7 @@ export class ObjectUploadCleanupService implements OnModuleInit, OnModuleDestroy
   private running = false;
   private pool: Pool;
 
-  constructor(private readonly storage: S3ObjectStorageService) {
+  constructor(@Inject(S3ObjectStorageService) private readonly storage: S3ObjectStorageService) {
     const connectionString = process.env.DATABASE_SYSTEM_URL ?? process.env.DATABASE_URL;
     if (!connectionString) throw new Error("DATABASE_SYSTEM_URL or DATABASE_URL is required for object cleanup.");
     this.pool = new Pool({ connectionString, max: 2 });

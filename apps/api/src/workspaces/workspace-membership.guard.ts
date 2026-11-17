@@ -1,4 +1,5 @@
 import {
+  Inject,
   BadRequestException,
   CanActivate,
   ConflictException,
@@ -25,7 +26,7 @@ export const WORKSPACE_ROLES_KEY = "memora:workspace-roles";
 
 @Injectable()
 export class WorkspaceMembershipGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(@Inject(Reflector) private readonly reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();

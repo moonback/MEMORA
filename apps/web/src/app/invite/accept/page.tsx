@@ -54,8 +54,6 @@ export default function AcceptInvitationPage() {
             <p className="auth-description">Connectez-vous avec l'adresse e-mail qui a reçu cette invitation.</p>
             <Link className="primary-button auth-submit" href={`/login?returnTo=${encodeURIComponent(returnTo)}`}>Se connecter pour accepter</Link>
           </>
-        ) : !session.user.emailVerified ? (
-          <p className="auth-message">Confirmez votre adresse e-mail avant d'accepter une invitation.</p>
         ) : (
           <>
             <p className="auth-description">Invitation destinée à <b>{session.user.email}</b>. Vérifiez que vous utilisez le bon compte.</p>
