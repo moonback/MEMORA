@@ -16,7 +16,18 @@ export interface SourceIngestionProcessor {
 export const SOURCE_INGESTION_PROCESSOR = Symbol("SOURCE_INGESTION_PROCESSOR");
 
 export class PermanentSourceIngestionError extends Error {
-  constructor(readonly code: "processor_unavailable" | "unsupported_source" | "invalid_source_state") {
+  constructor(
+    readonly code:
+      | "processor_unavailable"
+      | "unsupported_source"
+      | "invalid_source_state"
+      | "unsupported_format"
+      | "invalid_text_encoding"
+      | "empty_content"
+      | "object_integrity_failed"
+      | "object_missing"
+      | "object_too_large",
+  ) {
     super(code);
     this.name = "PermanentSourceIngestionError";
   }

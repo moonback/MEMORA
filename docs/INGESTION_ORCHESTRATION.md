@@ -10,7 +10,7 @@ The worker claims an ingestion only when the identifiers match the same workspac
 
 ## Processor boundary
 
-`SourceIngestionProcessor` is the extension point for future extraction work. The default `UnconfiguredSourceIngestionProcessor` deliberately raises the permanent error `processor_unavailable`; the worker records `failed`. It never marks a source `succeeded` merely because a job was delivered. Register a real processor only when it performs a real, tenant-revalidated operation. Parsing, OCR, antivirus, embeddings and memory generation remain out of scope.
+`SourceIngestionProcessor` is the extension point for extraction work. MEM-025 registers `SourceTextExtractionProcessor` (TXT/Markdown, see [TEXT_EXTRACTION.md](TEXT_EXTRACTION.md)); `UnconfiguredSourceIngestionProcessor` remains available and raises the permanent error `processor_unavailable`, which the worker records as `failed`. It never marks a source `succeeded` merely because a job was delivered. Register a real processor only when it performs a real, tenant-revalidated operation. Parsing, OCR, antivirus, embeddings and memory generation remain out of scope.
 
 ## Configuration
 

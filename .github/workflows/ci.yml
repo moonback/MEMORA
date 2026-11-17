@@ -38,6 +38,8 @@ jobs:
       REDIS_URL: redis://localhost:6379
       MEMORA_INGESTION_TEST_DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora_ingestion_test
       MEMORA_INGESTION_TEST_REDIS_URL: redis://localhost:6379/15
+      MEMORA_EXTRACTION_TEST_DATABASE_URL: postgresql://memora:memora_ci_password@localhost:5432/memora
+      MEMORA_EXTRACTION_TEST_APP_DATABASE_URL: postgresql://memora_app:memora_ci_app_password@localhost:5432/memora
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

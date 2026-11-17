@@ -9,8 +9,8 @@ Base path: `/api/workspaces/:workspaceId/sources`.
 - `GET /`: list sources with optional `type`, `status`, `limit` (1–100) and `offset`.
 - `POST /`: create source metadata. New sources begin in `pending`.
 - `GET /:sourceId`: fetch metadata and chunk count.
-- `GET /:sourceId/chunks`: list normalized chunks in ordinal order.
-- `PUT /:sourceId/chunks`: atomically replace the source's chunk set and mark it `ready`.
+- `GET /:sourceId/chunks`: list current (`is_current`) normalized chunks in ordinal order; `chunk_count` also counts current chunks only.
+- `PUT /:sourceId/chunks`: atomically replace the source's current chunk set and mark it `ready`. Since MEM-025 the replacement is versioned: identical chunks keep their IDs, replaced chunks are retired (`is_current = false`) and never deleted, so memory and relation evidence keep resolving. See [TEXT_EXTRACTION.md](TEXT_EXTRACTION.md).
 - `POST /:sourceId/archive`: soft-archive the source; chunk provenance is retained.
 
 Supported source types: document, email, audio, note, image, manual and web_clip. SHA-256 checksums must be 64 hexadecimal characters. Chunk ordinals are unique within a source; content is limited to 20,000 characters per chunk, and the replacement request is limited to 100 chunks.

@@ -1,6 +1,6 @@
 # Development Status
 
-Updated: 2026-11-16
+Updated: 2026-11-17
 
 ## Repository
 
@@ -33,6 +33,15 @@ Updated: 2026-11-16
 - MEM-018: DB 25/25, API 48/48, typecheck and build passed locally; GitHub Actions startup failure.
 - MEM-021: after corrective commit `95d6273`, typecheck passed; PostgreSQL 30/30 and API 57/57 passed with zero failures/skips; API and Next.js production builds passed.
 - MEM-022: user reported typecheck and production build passed; PostgreSQL 32/32 and API 60/60 passed with zero failures/skips. Web/Shared test scripts remain placeholders.
+
+## In progress: MEM-025 text extraction and normalization
+
+- Branch `feature/MEM-025-text-extraction-normalization` (uncommitted working tree on top of `e6382f1`).
+- `SourceTextExtractionProcessor` replaces the unconfigured processor: verified TXT/Markdown objects are read through `readObject` (size + SHA-256), strictly decoded as UTF-8, normalized (NFC, LF, control characters, blank lines) and chunked deterministically (≤ 2,000 chars, paragraph-aware, no overlap).
+- Processor runs on the restricted `memora_app` pool with transaction-local `app.workspace_id`; RLS is enforced. The worker's own `DATABASE_SYSTEM_URL` fallback is a superuser locally (documented follow-up).
+- Additive migration `0012_source_chunk_versions.sql`: `is_current` + partial unique index. Chunk replacement (processor and `PUT …/chunks`) retires instead of deleting; historical evidence stays readable. Not applied to the shared `memora` database.
+- Local validation on isolated `memora_mem025_test` / `memora_ingestion_test`: API 97/97 and PostgreSQL 35/35 with zero failures/skips (including MEM-024 Redis/BullMQ integration and 10 new MEM-025 integration tests); typecheck, lint and build passed.
+- Remaining: apply 0012 after review, PDF parser selection, dedicated least-privilege worker role. See [TEXT_EXTRACTION.md](TEXT_EXTRACTION.md).
 
 ## In progress: MEM-024 durable ingestion foundation
 

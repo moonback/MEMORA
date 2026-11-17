@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   index,
   integer,
@@ -138,10 +139,11 @@ export const sourceChunks = pgTable("source_chunks", {
   timeStartMs: integer("time_start_ms"),
   timeEndMs: integer("time_end_ms"),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+  isCurrent: boolean("is_current").notNull().default(true),
   ...timestamps,
 }, (table) => [
   foreignKey({ columns: [table.sourceId, table.workspaceId], foreignColumns: [sources.id, sources.workspaceId], name: "source_chunks_source_workspace_fk" }).onDelete("cascade"),
-  unique("source_chunks_source_ordinal_unique").on(table.sourceId, table.ordinal),
+  uniqueIndex("source_chunks_source_ordinal_current_unique").on(table.sourceId, table.ordinal).where(sql`${table.isCurrent}`),
   unique("source_chunks_id_workspace_unique").on(table.id, table.workspaceId),
   check("source_chunks_ordinal_nonnegative", sql`${table.ordinal} >= 0`),
   index("source_chunks_workspace_source_idx").on(table.workspaceId, table.sourceId),

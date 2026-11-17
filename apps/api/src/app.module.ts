@@ -16,7 +16,9 @@ import { S3ObjectStorageService } from "./sources/object-storage.service.js";
 import { ObjectUploadCleanupService } from "./sources/object-upload-cleanup.service.js";
 import { SourceIngestionDispatcherService } from "./sources/source-ingestion-dispatcher.service.js";
 import { SourceIngestionWorkerService } from "./sources/source-ingestion-worker.service.js";
-import { SOURCE_INGESTION_PROCESSOR, UnconfiguredSourceIngestionProcessor } from "./sources/source-ingestion-processor.js";
+import { SOURCE_INGESTION_PROCESSOR } from "./sources/source-ingestion-processor.js";
+import { SourceTextExtractionProcessor } from "./sources/source-text-extraction.processor.js";
+import { authPool } from "./auth/auth.js";
 
 @Module({
   imports: [],
@@ -28,7 +30,12 @@ import { SOURCE_INGESTION_PROCESSOR, UnconfiguredSourceIngestionProcessor } from
     ObjectUploadCleanupService,
     SourceIngestionDispatcherService,
     SourceIngestionWorkerService,
-    { provide: SOURCE_INGESTION_PROCESSOR, useClass: UnconfiguredSourceIngestionProcessor },
+    // Restricted app pool (DATABASE_APP_URL, NOBYPASSRLS) + transaction-local workspace context.
+    {
+      provide: SOURCE_INGESTION_PROCESSOR,
+      useFactory: (storage: S3ObjectStorageService) => new SourceTextExtractionProcessor(storage, authPool),
+      inject: [S3ObjectStorageService],
+    },
   ],
 })
 export class AppModule {}

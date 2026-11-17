@@ -20,6 +20,7 @@ import {
   type WorkspaceMembershipContext,
 } from "../workspaces/workspace-membership.guard.js";
 import { withWorkspaceContext } from "../database/tenant-context.js";
+import { replaceCurrentChunks } from "./source-chunk-versioning.js";
 
 const sourceTypes = ["document", "email", "audio", "note", "image", "manual", "web_clip"] as const;
 const sourceStatuses = ["pending", "processing", "ready", "failed", "archived"] as const;
@@ -174,7 +175,7 @@ export class SourceController {
       const result = await client.query<SourceRow & { chunk_count: number }>(
         `SELECT s.${sourceColumns.split(", ").join(", s.")},
                 (SELECT count(*)::int FROM source_chunks c
-                 WHERE c.workspace_id = s.workspace_id AND c.source_id = s.id) AS chunk_count,
+                 WHERE c.workspace_id = s.workspace_id AND c.source_id = s.id AND c.is_current) AS chunk_count,
                 (SELECT jsonb_build_object('status', i.status, 'attempts', i.attempts,
                   'maxAttempts', i.max_attempts, 'updatedAt', i.updated_at,
                   'lastErrorCode', i.last_error_code)
@@ -201,7 +202,7 @@ export class SourceController {
       const chunks = await client.query(
         `SELECT id, ordinal, content, token_count, page_number, time_start_ms,
                 time_end_ms, metadata, created_at
-         FROM source_chunks WHERE source_id = $1 AND workspace_id = $2
+         FROM source_chunks WHERE source_id = $1 AND workspace_id = $2 AND is_current
          ORDER BY ordinal ASC`,
         [sourceId, workspaceId],
       );
@@ -227,26 +228,8 @@ export class SourceController {
       if (!current) throw new NotFoundException("Source introuvable.");
       if (current.status === "archived") throw new ConflictException("Une source archivée ne peut pas être réindexée.");
 
-      await client.query("DELETE FROM source_chunks WHERE source_id = $1 AND workspace_id = $2", [sourceId, workspaceId]);
-      for (const chunk of input.chunks) {
-        await client.query(
-          `INSERT INTO source_chunks
-            (workspace_id, source_id, ordinal, content, token_count, page_number,
-             time_start_ms, time_end_ms, metadata)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
-          [
-            workspaceId,
-            sourceId,
-            chunk.ordinal,
-            chunk.content,
-            chunk.tokenCount ?? null,
-            chunk.pageNumber ?? null,
-            chunk.timeStartMs ?? null,
-            chunk.timeEndMs ?? null,
-            JSON.stringify(chunk.metadata ?? {}),
-          ],
-        );
-      }
+      // Versioned replacement: unchanged chunks keep their IDs, replaced ones are retired, never deleted.
+      await replaceCurrentChunks(client, workspaceId, sourceId, input.chunks);
       const updated = await client.query<SourceRow>(
         `UPDATE sources SET status = 'ready', processed_at = now(), updated_at = now()
          WHERE id = $1 AND workspace_id = $2 RETURNING ${sourceColumns}`,

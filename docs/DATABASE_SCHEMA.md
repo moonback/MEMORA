@@ -25,6 +25,7 @@
 
 - A source chunk references its source through the pair (source_id, workspace_id).
 - Evidence references both memory and source chunk through workspace-qualified composite foreign keys.
+- MEM-025: `source_chunks.is_current` marks the latest chunk set; ordinals are unique among current chunks only (`source_chunks_source_ordinal_current_unique`). Replaced chunks are retired, not deleted, so evidence keeps its historical target (migration 0012, see `TEXT_EXTRACTION.md`).
 - Memory-to-entity links and entity relations are workspace-qualified.
 - Memory confidence values are constrained to 0–100.
 - Temporal validity ranges cannot end before they begin.
