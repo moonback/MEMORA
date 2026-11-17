@@ -147,7 +147,7 @@ export class S3ObjectStorageService {
     }
 
     const hash = createHash("sha256");
-    const chunks: Buffer[] = [];
+    const content = Buffer.allocUnsafe(input.expectedByteSize);
     let totalBytes = 0;
 
     try {
@@ -160,10 +160,9 @@ export class S3ObjectStorageService {
           throw new Error("source_object_size_limit_exceeded");
         }
 
-        const buffer = Buffer.from(chunk);
-        chunks.push(buffer);
-        hash.update(buffer);
-        totalBytes += buffer.byteLength;
+        hash.update(chunk);
+        content.set(chunk, totalBytes);
+        totalBytes += chunk.byteLength;
       }
     } catch (error) {
       body.destroy?.();
@@ -179,7 +178,7 @@ export class S3ObjectStorageService {
       throw new Error("source_object_checksum_mismatch");
     }
 
-    return Buffer.concat(chunks, totalBytes);
+    return content;
   }
 
   async createDownloadUrl(input: { bucketName: string; objectKey: string; contentType: string }) {
