@@ -104,12 +104,12 @@ export class SourceIngestionWorkerService implements OnModuleInit, OnModuleDestr
           : "processor_transient_failure";
       await this.pool.query(
         `UPDATE public.source_ingestions
-         SET status = $5, completed_at = CASE WHEN $5 = 'failed' THEN now() ELSE NULL END,
-             available_at = CASE WHEN $5 = 'queued' THEN now() ELSE available_at END,
+         SET status = $5, completed_at = CASE WHEN $7 THEN now() ELSE NULL END,
+             available_at = CASE WHEN NOT $7 THEN now() ELSE available_at END,
              lease_token = NULL, lease_until = NULL, last_error_code = $6, updated_at = now()
          WHERE id = $1 AND source_id = $2 AND workspace_id = $3
            AND status = 'processing' AND lease_token = $4`,
-        [data.ingestionId, data.sourceId, data.workspaceId, leaseToken, permanent || exhausted ? "failed" : "queued", code],
+        [data.ingestionId, data.sourceId, data.workspaceId, leaseToken, permanent || exhausted ? "failed" : "queued", code, permanent || exhausted],
       );
       if (!permanent && !exhausted) throw new Error("source_ingestion_transient_failure");
     } finally {
